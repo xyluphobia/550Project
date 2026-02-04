@@ -59,13 +59,11 @@ This project uses a client-server architecture:
 
 ---
 ## Repository Structure
-<ul>
- client/        # React frontend
- server/        # Node/Express backend
- server/db/     # Migrations, schema, seed scripts
- tests/
- docs/
-</ul>
+ - client/        # React frontend
+ - server/        # Node/Express backend
+ - server/db/     # Migrations, schema, seed scripts
+ - tests/
+ - docs/
 
 ---
 ## Installation
@@ -122,7 +120,7 @@ npm test
 
 Frontend
 ```
-cd client
+cd my-app
 npm test
 ```
 
