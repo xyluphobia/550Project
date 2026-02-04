@@ -1,6 +1,7 @@
 ﻿import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import './index.css';
 import { useState } from 'react';
+import RoomBookingCalendar from './components/roomBookingCalendar/roomBookingCalendar';
 
 function Home() {
     return (
@@ -13,14 +14,21 @@ function Home() {
             <nav>
                 <ul>
                     <li><Link to="/">Home</Link></li>
-                    <li><Link to="/equipment">Equipment</Link></li>
-                    <li><Link to="/login">Login</Link></li>
+                    <li><Link to="/equipment" className='nav-left'>Equipment</Link></li>
+                    <li><Link to="/login" className="nav-right">Login</Link></li>
                 </ul>
             </nav>
 
             <main>
-                <h3>Welcome to CSC-550 Booking System</h3>
-                <p>Book rooms and equipment for your projects.</p>
+                <aside>
+                    <h3>Welcome to CSC-550 Booking System</h3>
+                    <p>Book rooms and equipment for your projects.</p>
+                </aside>
+                <section>
+                    <h4>Calender</h4>
+                    <hr />
+                    {/* <div><RoomBookingCalendar /></div> */}
+                </section>
             </main>
             
             <footer>
