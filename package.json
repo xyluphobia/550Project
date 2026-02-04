@@ -1,0 +1,17 @@
+{
+    "name": "csc550-project",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev",
+    "dev:frontend": "cd frontend/my-app && npm run dev",
+    "start": "npm run dev",
+    "install-all": "npm install && cd backend && npm install && cd ../frontend/my-app && npm install",
+    "build": "echo 'Build both backend and frontend'",
+    "lint": "echo 'Lint both backend and frontend'"
+  },
+
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
