@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET equipment by id
-router.get('/:id', async (req, res) => {
+router.get('/:equipment_id', async (req, res) => {
   const { id } = req.params;
   try {
     const eq = await query('SELECT * FROM equipment WHERE id = ?', [id]);
@@ -44,7 +44,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update equipment
-router.put('/:id', async (req, res) => {
+router.put('/:equipment_id', async (req, res) => {
   const { id } = req.params;
   const { name, quantity } = req.body;
   try {
@@ -58,7 +58,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE equipment
-router.delete('/:id', async (req, res) => {
+router.delete('/:equipment_id', async (req, res) => {
   const { id } = req.params;
   try {
     await query('DELETE FROM equipment WHERE id = ?', [id]);

@@ -11,5 +11,5 @@ CREATE TABLE bookings (
 
   CONSTRAINT fk_bookings_user
     FOREIGN KEY (uncw_id)
-    REFERENCES users(uncw_id),
-)
+    REFERENCES users(uncw_id)
+) ENGINE=InnoDB;

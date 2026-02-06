@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET booking by id
-router.get('/:id', async (req, res) => {
+router.get('/:booking_id', async (req, res) => {
   const { id } = req.params;
   try {
     const booking = await query('SELECT * FROM bookings WHERE id = ?', [id]);
@@ -58,7 +58,7 @@ router.post('/', async (req, res) => {
 });
 
 // DELETE booking
-router.delete('/:id', async (req, res) => {
+router.delete('/:booking_id', async (req, res) => {
   const { id } = req.params;
   try {
     // Delete booking-related rooms and equipment first

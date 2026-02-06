@@ -11,4 +11,4 @@ CREATE TABLE booking_rooms (
   CONSTRAINT fk_booking_rooms_room
     FOREIGN KEY (room_id)
     REFERENCES rooms(room_id)
-);
+) ENGINE=InnoDB;

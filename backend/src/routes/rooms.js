@@ -8,6 +8,7 @@ router.get('/', async (req, res) => {
   try {
     const rooms = await query('SELECT * FROM rooms');
     res.json(rooms);
+    console.log('Rooms fetched:', rooms);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Database error' });
@@ -15,11 +16,12 @@ router.get('/', async (req, res) => {
 });
 
 // GET single room by id
-router.get('/:id', async (req, res) => {
+router.get('/:room_id', async (req, res) => {
   const { id } = req.params;
   try {
-    const room = await query('SELECT * FROM rooms WHERE id = ?', [id]);
+    const room = await query('SELECT * FROM rooms WHERE room_id = ?', [id]);
     if (!room.length) return res.status(404).json({ error: 'Room not found' });
+    console.log('Room fetched:', room);
     res.json(room[0]);
   } catch (err) {
     console.error(err);
@@ -29,13 +31,14 @@ router.get('/:id', async (req, res) => {
 
 // POST new room
 router.post('/', async (req, res) => {
-  const { name, capacity } = req.body;
+  const { room_id, building_name, room_capacity, has_whiteboard, has_monitor, is_active } = req.body;
   try {
     const result = await query(
-      'INSERT INTO rooms (name, capacity) VALUES (?, ?)',
-      [name, capacity]
-    );
-    const newRoom = await query('SELECT * FROM rooms WHERE id = ?', [result.insertId]);
+      'INSERT INTO rooms (room_id, building_name, room_capacity, has_whiteboard, has_monitor, is_active) VALUES (?, ?, ?, ?, ?, ?)',
+      [room_id, building_name, room_capacity, has_whiteboard, has_monitor, is_active]
+    );    
+    const newRoom = await query('SELECT * FROM rooms WHERE room_id = ?', [result.insertId]);
+    console.log('Room added:', newRoom);
     res.status(201).json(newRoom[0]);
   } catch (err) {
     console.error(err);
@@ -44,12 +47,13 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update room
-router.put('/:id', async (req, res) => {
+router.put('/:room_id', async (req, res) => {
   const { id } = req.params;
-  const { name, capacity } = req.body;
+  const { building_name, room_capacity, has_whiteboard, has_monitor, is_active } = req.body;
   try {
-    await query('UPDATE rooms SET name = ?, capacity = ? WHERE id = ?', [name, capacity, id]);
-    const updatedRoom = await query('SELECT * FROM rooms WHERE id = ?', [id]);
+    await query('UPDATE rooms SET building_name = ?, room_capacity = ?, has_whiteboard = ?, has_monitor = ?, is_active = ? WHERE room_id = ?', [building_name, room_capacity, has_whiteboard, has_monitor, is_active, id]);
+    const updatedRoom = await query('SELECT * FROM rooms WHERE room_id = ?', [id]);
+    console.log('Updated Room:', updatedRoom);
     res.json(updatedRoom[0]);
   } catch (err) {
     console.error(err);
@@ -58,10 +62,10 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE room
-router.delete('/:id', async (req, res) => {
+router.delete('/:room_id', async (req, res) => {
   const { id } = req.params;
   try {
-    await query('DELETE FROM rooms WHERE id = ?', [id]);
+    await query('DELETE FROM rooms WHERE room_id = ?', [id]);
     res.json({ message: 'Room deleted' });
   } catch (err) {
     console.error(err);
