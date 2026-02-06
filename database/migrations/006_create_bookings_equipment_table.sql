@@ -12,5 +12,5 @@ CREATE TABLE booking_equipment (
   CONSTRAINT fk_booking_equipment_equipment
     FOREIGN KEY (equipment_id)
     REFERENCES equipment(equipment_id)
-);
+) ENGINE=InnoDB;
 

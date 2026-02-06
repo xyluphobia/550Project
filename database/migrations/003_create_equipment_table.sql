@@ -5,5 +5,5 @@ CREATE TABLE equipment (
   equipment_description VARCHAR(500),
   total_quantity INT,
   available_quantity INT,
-  is_active BIT NOT NULL,
-)
+  is_active BIT NOT NULL
+) ENGINE=InnoDB;
