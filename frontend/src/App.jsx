@@ -27,7 +27,7 @@ function Home() {
                 <section>
                     <h4>Calender</h4>
                     <hr />
-                    {/* <div><RoomBookingCalendar /></div> */}
+                    <div><RoomBookingCalendar /></div>
                 </section>
             </main>
             
