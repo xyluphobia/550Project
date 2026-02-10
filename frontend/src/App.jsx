@@ -187,7 +187,7 @@ function LoginPage() {
                             />
                         </div>
                     )}
-
+                    
                     <button type="submit" className="submit-btn">
                         {isLogin ? 'Login' : 'Create Account'}
                     </button>
