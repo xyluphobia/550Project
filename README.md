@@ -45,7 +45,8 @@ This project uses a client-server architecture:
  - Express
 
 **Database**
- - Microsoft SQL Azure (RTM) - 12+
+ - Microsoft SQL Azure (RTM) - 12+ (production)
+ - mariadb (localhosted for development)
 
 **Testing**
  - Jest
@@ -56,13 +57,14 @@ This project uses a client-server architecture:
 **Prerequisites**
  - Node.js
  - Git
+ - npm
+ - MariaDB Server
 
 ---
 ## Repository Structure
- - client/        # React frontend
- - server/        # Node/Express backend
- - server/db/     # Migrations, schema, seed scripts
- - tests/
+ - frontend/        # React frontend
+ - backend/        # Node/Express backend & DB seed scripts
+ - database/     # Migrations
  - docs/
 
 ---
@@ -74,30 +76,46 @@ cd 550Project
 
 ### Backend Setup
 ```
-cd server
+cd backend
 npm install
 ```
 
 **Create a .env file:**
+The file should be located at `backend/.env` and should contain:
 ```
 DB_HOST=localhost
-DB_USER=root
+DB_USER=550user
 DB_PASSWORD=yourpassword
-DB_NAME=uncw_booking
+DB_NAME=550project
+DB_PORT=3306
 PORT=5000
-AUTH_MODE=mock
 ```
 
 **Initialize database:**
+You must manually create the database once before running migrations & seeds.
+Login to MariaDB
 ```
-npm run db:migrate
-npm run db:seed
+mariadb -u root -p
+```
+Create the database:
+```
+CREATE DATABASE 550project;
+```
+To seed (or reset) the database with tables & dummy data, run the following script from the root directory:
+```
+npm run db:reset
 ```
 
 **Start backend:**
 ```
-npm run dev
+npm run dev:backend
 ```
+You can test if you have done everything correctly by running the following command:
+```
+curl http://localhost:5000/api/users
+```
+You should expect to receive JSON data containing the seeded users.
+
 ### Frontend Setup
 ```
 cd my-app
