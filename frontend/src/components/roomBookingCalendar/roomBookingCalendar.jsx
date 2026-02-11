@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
+import resourceTimelinePlugin from '@fullcalendar/resource-timeline'; // Add this
 import interactionPlugin from '@fullcalendar/interaction';
-import listPlugin from '@fullcalendar/list';
 import axios from 'axios';
 import './roomBookingCalendar.css';
 
@@ -18,6 +16,7 @@ const RoomBookingCalendar = () => {
     const [showBookingForm, setShowBookingForm] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [selectedDate, setSelectedDate] = useState(new Date()); // Add state for selected date
     const [bookingDetails, setBookingDetails] = useState({
         title: '',
         description: '',
@@ -25,140 +24,96 @@ const RoomBookingCalendar = () => {
         userEmail: '',
     });
 
-    const API_BASE_URL = 'http://localhost:5000/api'; // Update with your backend URL
+    const API_BASE_URL = 'http://localhost:5000/api';
     const BUILDINGS_API_URL = `${API_BASE_URL}/buildings`;
     const ROOMS_API_URL = `${API_BASE_URL}/rooms`;
     const BOOKINGS_API_URL = `${API_BASE_URL}/bookings`;
 
-    const avaliableBuildings = [
-        // Building data - capacity represents number of rooms in the building
-        { id: 'bldg1', name: 'Discovery Hall', capacity: 12, color: '#ff5733' },
-        { id: 'bldg2', name: 'Randall Hall', capacity: 32, color: '#33c1ff' },
-        { id: 'bldg3', name: 'Makerstudio', capacity: 4, color: '#75ff33' },
-    ]
-    
-    const roomData = [
-        // Discovery Hall rooms (12 rooms total)
-        { id: 'discovery-101', name: 'Room 101', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 20, floor: '1', color: '#ff5733' },
-        { id: 'discovery-102', name: 'Room 102', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 15, floor: '1', color: '#ff5733' },
-        { id: 'discovery-201', name: 'Room 201', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 25, floor: '2', color: '#ff5733' },
-        { id: 'discovery-202', name: 'Room 202', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 30, floor: '2', color: '#ff5733' },
-        { id: 'discovery-301', name: 'Conference Room', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 40, floor: '3', color: '#ff5733' },
-        
-        // Randall Hall rooms (32 rooms total)
-        { id: 'randall-101', name: 'Classroom A', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 30, floor: '1', color: '#33c1ff' },
-        { id: 'randall-102', name: 'Classroom B', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 25, floor: '1', color: '#33c1ff' },
-        { id: 'randall-201', name: 'Lecture Hall', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 100, floor: '2', color: '#33c1ff' },
-        { id: 'randall-202', name: 'Lab Room 1', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 20, floor: '2', color: '#33c1ff' },
-        { id: 'randall-301', name: 'Meeting Room', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 15, floor: '3', color: '#33c1ff' },
-        { id: 'randall-302', name: 'Study Room A', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 10, floor: '3', color: '#33c1ff' },
-        
-        // Makerstudio rooms (4 rooms total)
-        { id: 'maker-101', name: 'Studio A', buildingId: 'bldg3', buildingName: 'Makerstudio', capacity: 8, floor: '1', color: '#75ff33' },
-        { id: 'maker-102', name: 'Studio B', buildingId: 'bldg3', buildingName: 'Makerstudio', capacity: 6, floor: '1', color: '#75ff33' },
-        { id: 'maker-201', name: 'Workshop', buildingId: 'bldg3', buildingName: 'Makerstudio', capacity: 12, floor: '2', color: '#75ff33' },
-        { id: 'maker-202', name: '3D Printing Lab', buildingId: 'bldg3', buildingName: 'Makerstudio', capacity: 10, floor: '2', color: '#75ff33' },
-    ];
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                
+                const buildingsResponse = await axios.get(BUILDINGS_API_URL);
+                console.log('Buildings data:', buildingsResponse.data);
+                setBuildings(buildingsResponse.data);
+                
+                const roomsResponse = await axios.get(ROOMS_API_URL);
+                console.log('Rooms data:', roomsResponse.data);
+                setRooms(roomsResponse.data);
+                
+                const bookingsResponse = await axios.get(BOOKINGS_API_URL);
+                console.log('Bookings data:', bookingsResponse.data);
+                setEvents(bookingsResponse.data.map(booking => ({
+                    ...booking,
+                    resourceId: booking.roomId || booking.room, // Map room to resourceId
+                    start: booking.startTime,
+                    end: booking.endTime,
+                    title: booking.eventName || booking.title,
+                    color: booking.roomColor || '#3788d8'
+                })));
+                
+                setFilteredRooms(roomsResponse.data);
+                
+            } catch (err) {
+                console.error('Error fetching data:', err);
+                setError('Failed to load data from server. Please try again later.');
+                // Fallback data
+                setBuildings([
+                    { id: 'bldg1', name: 'Discovery Hall', capacity: 12, color: '#ff5733' },
+                    { id: 'bldg2', name: 'Randall Hall', capacity: 32, color: '#33c1ff' },
+                    { id: 'bldg3', name: 'Makerstudio', capacity: 4, color: '#75ff33' },
+                ]);
+                setRooms([
+                    { id: 'discovery-101', name: 'Room 101', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 20, floor: '1', color: '#ff5733' },
+                    { id: 'discovery-102', name: 'Room 102', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 15, floor: '1', color: '#ff5733' },
+                    { id: 'randall-101', name: 'Classroom A', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 30, floor: '1', color: '#33c1ff' },
+                    { id: 'randall-201', name: 'Lecture Hall', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 100, floor: '2', color: '#33c1ff' },
+                ]);
+                setFilteredRooms([
+                    { id: 'discovery-101', name: 'Room 101', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 20, floor: '1', color: '#ff5733' },
+                    { id: 'discovery-102', name: 'Room 102', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 15, floor: '1', color: '#ff5733' },
+                    { id: 'randall-101', name: 'Classroom A', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 30, floor: '1', color: '#33c1ff' },
+                    { id: 'randall-201', name: 'Lecture Hall', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 100, floor: '2', color: '#33c1ff' },
+                ]);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const bookings = [
-        // Example bookings
-        {
-            title: 'Team Meeting',
-            start: '2024-07-01T10:00:00',
-            end: '2024-07-01T11:00:00',
-            room: 'discovery-101',
-            building: 'bldg1',
-            color: '#ff5733'
-        },
-        {
-            title: 'Project Discussion',
-            start: '2024-07-02T14:00:00',
-            end: '2024-07-02T15:30:00',
-            room: 'randall-201',
-            building: 'bldg2',
-            color: '#33c1ff'
-        }
-    ];
+        fetchData();
+    }, []);
 
     useEffect(() => {
-
-        
-        // Fetch rooms and bookings from API
-    //     const fetchData = async () => {
-    //         try {
-    //             setLoading(true);
-    //             setError(null);
-                
-    //             // Fetch buildings
-    //             const buildingsResponse = await axios.get(BUILDINGS_API_URL);
-    //             console.log('Buildings data:', buildingsResponse.data);
-    //             setBuildings(buildingsResponse.data);
-                
-    //             // Fetch rooms
-    //             const roomsResponse = await axios.get(ROOMS_API_URL);
-    //             console.log('Rooms data:', roomsResponse.data);
-    //             setRooms(roomsResponse.data);
-                
-    //             // Fetch bookings
-    //             const bookingsResponse = await axios.get(BOOKINGS_API_URL);
-    //             console.log('Bookings data:', bookingsResponse.data);
-    //             setEvents(bookingsResponse.data.map(booking => ({
-    //                 ...booking,
-    //                 start: booking.startTime,
-    //                 end: booking.endTime,
-    //                 title: booking.eventName || booking.title,
-    //                 color: booking.roomColor || '#3788d8'
-    //             })));
-                
-    //             // Set initial filtered rooms (all rooms)
-    //             setFilteredRooms(roomsResponse.data);
-                
-    //         } catch (err) {
-    //             console.error('Error fetching data:', err);
-    //             setError('Failed to load data from server. Please try again later.');
-    //             // Fallback to sample data for development
-    //             setBuildings([
-    //                 { id: 'bldg1', name: 'Discovery Hall', capacity: 12, color: '#ff5733' },
-    //                 { id: 'bldg2', name: 'Randall Hall', capacity: 32, color: '#33c1ff' },
-    //                 { id: 'bldg3', name: 'Makerstudio', capacity: 4, color: '#75ff33' },
-    //             ]);
-    //             setRooms([
-    //                 { id: 'discovery-101', name: 'Room 101', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 20, floor: '1', color: '#ff5733' },
-    //                 { id: 'discovery-102', name: 'Room 102', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 15, floor: '1', color: '#ff5733' },
-    //                 { id: 'randall-101', name: 'Classroom A', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 30, floor: '1', color: '#33c1ff' },
-    //                 { id: 'randall-201', name: 'Lecture Hall', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 100, floor: '2', color: '#33c1ff' },
-    //             ]);
-    //             setFilteredRooms([
-    //                 { id: 'discovery-101', name: 'Room 101', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 20, floor: '1', color: '#ff5733' },
-    //                 { id: 'discovery-102', name: 'Room 102', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 15, floor: '1', color: '#ff5733' },
-    //                 { id: 'randall-101', name: 'Classroom A', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 30, floor: '1', color: '#33c1ff' },
-    //                 { id: 'randall-201', name: 'Lecture Hall', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 100, floor: '2', color: '#33c1ff' },
-    //             ]);
-    //         } finally {
-    //             setLoading(false);
-    //         }
-    //     };
-
-    //     fetchData();
-    // }, []); // Empty dependency array means this runs once on component mount
-
-    useEffect(() => {
-        // Filter rooms when building is selected
         if (selectedBuilding) {
-            // Filter rooms by buildingId
             const buildingRooms = rooms.filter(room => room.buildingId === selectedBuilding);
             setFilteredRooms(buildingRooms);
-            // Reset selected room when building changes
             setSelectedRoom('');
         } else {
             setFilteredRooms(rooms);
         }
     }, [selectedBuilding, rooms]);
 
+    // Transform rooms into resources for FullCalendar
+    const getResources = () => {
+        return filteredRooms.map(room => ({
+            id: room.id,
+            title: `${room.name} - Floor ${room.floor} (${room.capacity}p)`,
+            building: room.buildingName,
+            eventColor: room.color,
+            extendedProps: {
+                capacity: room.capacity,
+                floor: room.floor,
+                buildingId: room.buildingId
+            }
+        }));
+    };
+
     const handleDateSelect = (selectInfo) => {
         if (!selectedRoom) {
             alert('Please select a room before booking.');
-            selectInfo.calendar.unselect(); // Clear the selection
+            selectInfo.calendar.unselect();
             return;
         }
 
@@ -183,6 +138,8 @@ const RoomBookingCalendar = () => {
         const buildingInfo = buildings.find(b => b.id === selectedBuilding);
 
         const newBooking = {
+            id: `booking-${Date.now()}`, // Add unique ID
+            resourceId: selectedRoom, // Map to resourceId
             title: bookingDetails.title,
             start: selectedSlot.start,
             end: selectedSlot.end,
@@ -197,7 +154,6 @@ const RoomBookingCalendar = () => {
         };
 
         try {
-            // Post new booking to API
             setEvents([...events, newBooking]);
             setShowBookingForm(false);
             setBookingDetails({
@@ -216,25 +172,30 @@ const RoomBookingCalendar = () => {
     const handleEventClick = (clickInfo) => {
         if (window.confirm('Delete booking "' + clickInfo.event.title + '"?')) {
             clickInfo.event.remove();
-            // Delete booking from API
             alert('Booking deleted successfully!');
         }
     };
     
     const renderEventContent = (eventInfo) => {
-        const roomName = rooms.find(r => r.id === eventInfo.event.extendedProps.room)?.name || 'Unknown Room';
-        const buildingName = buildings.find(b => b.id === eventInfo.event.extendedProps.building)?.name || '';
-        
         return (
             <div className="event-content">
                 <div><strong>{eventInfo.event.title}</strong></div>
-                <div className="event-room">{roomName}</div>
-                {buildingName && <div className="event-building">{buildingName}</div>}
+                <div className="event-time">
+                    {eventInfo.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
+                    {eventInfo.event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+                {eventInfo.event.extendedProps.userName && (
+                    <div className="event-user">Booked by: {eventInfo.event.extendedProps.userName}</div>
+                )}
             </div>
         );
     };
 
-    // Calculate number of rooms for each building dynamically
+    // Handle date change
+    const handleDatesSet = (dateInfo) => {
+        setSelectedDate(dateInfo.start);
+    };
+
     const getRoomsForBuilding = (buildingId) => {
         return rooms.filter(room => room.buildingId === buildingId);
     };
@@ -300,36 +261,40 @@ const RoomBookingCalendar = () => {
 
             <div className='calendar-wrapper'>
                 <FullCalendar
-                    plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-                    initialView='timeGridWeek'
+                    plugins={[resourceTimelinePlugin, interactionPlugin]}
+                    schedulerLicenseKey='GPL-My-Project-Is-Open-Source'
+                    initialView='resourceTimelineDay'
                     headerToolbar={{
                         left: 'prev,next today',
                         center: 'title',
-                        right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                        right: 'resourceTimelineDay'
                     }}
-                    slotMinTime="08:00:00"
-                    slotLabelInterval='01:00:00'
-                    slotMaxTime="20:00:00"
-                    businessHours={{
-                        daysOfWeek: [1, 2, 3, 4, 5],
-                        startTime: '08:00',
-                        endTime: '20:00',
-                    }}
+                    resources={getResources()}
+                    events={events}
+                    editable={true}
                     selectable={true}
                     selectMirror={true}
                     select={handleDateSelect}
                     eventClick={handleEventClick}
-                    events={events}
                     eventContent={renderEventContent}
                     height="700px"
-                    allDaySlot={false}
-                    slotEventOverlap={false}
-                    eventDisplay='block'
-                    eventTimeFormat={{
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false
+                    slotDuration="00:30:00" // 30 minute slots
+                    slotLabelInterval="01:00:00" // Show hour labels
+                    slotMinTime="00:00:00" // Start at 0 AM
+                    slotMaxTime="24:00:00" // End at 12 PM
+                    resourceAreaWidth="200px" // Width of room column
+                    resourceLabelDidMount={(info) => {
+                        // Add custom styling to resource headers
+                        const building = buildings.find(b => 
+                            b.id === info.resource.extendedProps.buildingId
+                        );
+                        if (building) {
+                            info.el.style.borderLeft = `4px solid ${building.color}`;
+                        }
                     }}
+                    datesSet={handleDatesSet}
+                    nowIndicator={true}
+                    scrollTime="08:00:00" // Scroll to 8 AM on load
                 />
             </div>
 
