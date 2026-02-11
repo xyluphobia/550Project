@@ -70,12 +70,16 @@ const RoomBookingCalendar = () => {
                     { id: 'discovery-102', name: 'Room 102', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 15, floor: '1', color: '#ff5733' },
                     { id: 'randall-101', name: 'Classroom A', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 30, floor: '1', color: '#33c1ff' },
                     { id: 'randall-201', name: 'Lecture Hall', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 100, floor: '2', color: '#33c1ff' },
+                    { id: 'makerstudio-1', name: '3D Printing Area', buildingId: 'bldg3', buildingName: 'Makerstudio', capacity: 4, floor: '1', color: '#75ff33' },
+                    { id: 'makerstudio-2', name: 'Electronics Lab', buildingId: 'bldg3', buildingName: 'Makerstudio', capacity: 6, floor: '1', color: '#75ff33' },
                 ]);
                 setFilteredRooms([
                     { id: 'discovery-101', name: 'Room 101', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 20, floor: '1', color: '#ff5733' },
                     { id: 'discovery-102', name: 'Room 102', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 15, floor: '1', color: '#ff5733' },
                     { id: 'randall-101', name: 'Classroom A', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 30, floor: '1', color: '#33c1ff' },
                     { id: 'randall-201', name: 'Lecture Hall', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 100, floor: '2', color: '#33c1ff' },
+                    { id: 'makerstudio-1', name: '3D Printing Area', buildingId: 'bldg3', buildingName: 'Makerstudio', capacity: 4, floor: '1', color: '#75ff33' },
+                    { id: 'makerstudio-2', name: 'Electronics Lab', buildingId: 'bldg3', buildingName: 'Makerstudio', capacity: 6, floor: '1', color: '#75ff33' },  
                 ]);
             } finally {
                 setLoading(false);
@@ -200,6 +204,8 @@ const RoomBookingCalendar = () => {
         return rooms.filter(room => room.buildingId === buildingId);
     };
 
+    const renderCalHight = rooms.length > 0 ? 'auto' : rooms.length * 150; // Set height to auto if rooms exist, otherwise fixed height
+
     return (
         <div className="room-booking-calendar">
             <h2>Room Booking Calendar</h2>
@@ -277,11 +283,11 @@ const RoomBookingCalendar = () => {
                     select={handleDateSelect}
                     eventClick={handleEventClick}
                     eventContent={renderEventContent}
-                    height="700px"
+                    height={renderCalHight}
                     slotDuration="00:30:00" // 30 minute slots
                     slotLabelInterval="01:00:00" // Show hour labels
-                    slotMinTime="00:00:00" // Start at 0 AM
-                    slotMaxTime="24:00:00" // End at 12 PM
+                    slotMinTime="06:00:00" // Start at 0 AM
+                    slotMaxTime="26:00:00" // End at 12 PM
                     resourceAreaWidth="200px" // Width of room column
                     resourceLabelDidMount={(info) => {
                         // Add custom styling to resource headers
@@ -294,7 +300,7 @@ const RoomBookingCalendar = () => {
                     }}
                     datesSet={handleDatesSet}
                     nowIndicator={true}
-                    scrollTime="08:00:00" // Scroll to 8 AM on load
+                    scrollTime="07:00:00" // Scroll to 8 AM on load
                 />
             </div>
 
