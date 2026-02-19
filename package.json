@@ -10,7 +10,7 @@
     "lint": "cd frontend && npm run build",
     "test": "cd frontend && npm test",
 
-    "db:reset": "./database/run-migrations.sh && node backend/seeds/seedAll.js",
+    "db:reset": "./database/run-migrations.sh && node ./database/seeds/seedAll.js",
 
     "start": "npm run dev",
     "install-all": "npm install && cd backend && npm install && cd ../frontend/my-app && npm install"

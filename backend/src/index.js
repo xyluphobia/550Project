@@ -25,7 +25,7 @@ app.use('/api/bookings', bookingsRouter);
 
 // Root endpoint for health check
 app.get('/', (req, res) => {
-  res.send('Backend is running 🚀');
+  res.send('Backend is running :D');
 });
 
 // Global error handler (optional but useful)

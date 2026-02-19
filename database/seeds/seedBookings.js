@@ -10,8 +10,8 @@ export async function seedBookings() {
 
   // Insert bookings
   const bookings = [
-    [850600010, 'room', '2026-02-10 10:00:00', '2026-02-10 12:00:00', '2026-02-06 09:00:00', 'Study group', 4, 1],
-    [850600017, 'equipment', '2026-02-11 14:00:00', '2026-02-11 16:00:00', '2026-02-06 09:10:00', 'Project filming', 2, 0],
+    [850600010, 'room', '2026-02-10 10:00:00', '2026-02-10 12:00:00', '2026-02-06 09:00:00', 'Study group'],
+    [850600017, 'equipment', '2026-02-11 14:00:00', '2026-02-11 16:00:00', '2026-02-06 09:10:00', 'Project filming'],
   ];
 
   const bookingIds = [];
@@ -19,8 +19,8 @@ export async function seedBookings() {
   for (const b of bookings) {
     const result = await query(
       `INSERT INTO bookings
-       (uncw_id, booking_type, start_time, end_time, created_at, notes, group_size, is_joinable)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (uncw_id, booking_type, start_time, end_time, created_at, notes)
+       VALUES (?, ?, ?, ?, ?, ?)`,
       b
     );
 
@@ -29,9 +29,9 @@ export async function seedBookings() {
 
   // booking_rooms
   await query(
-    `INSERT INTO booking_rooms (booking_id, room_id)
-     VALUES (?, ?)`,
-    [bookingIds[0], 101]
+    `INSERT INTO booking_rooms (booking_id, room_id, group_size, is_joinable)
+     VALUES (?, ?, ?, ?)`,
+    [bookingIds[0], 1, 4, 1]
   );
 
   // booking_equipment

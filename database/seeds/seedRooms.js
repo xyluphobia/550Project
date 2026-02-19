@@ -66,7 +66,7 @@ export async function seedRooms() {
   for (const r of [...discoveryRooms, ...randalRooms, ...makerstudioRooms]) {
     await query(
       `INSERT INTO rooms
-       (room_id, building_name, room_capacity, has_whiteboard, has_monitor, is_active)
+       (room_code, building_name, room_capacity, has_whiteboard, has_monitor, is_active)
        VALUES (?, ?, ?, ?, ?, ?)`,
       r
     );
