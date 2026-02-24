@@ -22,7 +22,7 @@ function Home() {
             <main>
                 <aside>
                     <h3>Welcome to CSC-550 Booking System</h3>
-                    <p>Book rooms and equipment for your projects.</p>
+                    <p>Book rooms and equipment for our project.</p>
                 </aside>
                 <section>
                     <h4>Calender</h4>

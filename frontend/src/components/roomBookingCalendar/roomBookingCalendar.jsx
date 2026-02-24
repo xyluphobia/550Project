@@ -14,6 +14,8 @@ const RoomBookingCalendar = () => {
     const [filteredRooms, setFilteredRooms] = useState([]);
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [showBookingForm, setShowBookingForm] = useState(false);
+    const [calendarSlots, setCalendarSlots] = useState([]);
+    const [timeSlotsAdded, setTimeSlotsAdded] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedDate, setSelectedDate] = useState(new Date()); // Add state for selected date
@@ -28,7 +30,56 @@ const RoomBookingCalendar = () => {
     const BUILDINGS_API_URL = `${API_BASE_URL}/buildings`;
     const ROOMS_API_URL = `${API_BASE_URL}/rooms`;
     const BOOKINGS_API_URL = `${API_BASE_URL}/bookings`;
+    const renderCalHight = rooms.length > 0 ? 'auto' : rooms.length * 150; // Set height to auto if rooms exist, otherwise fixed height
+    const currentHour = new Date().getHours() - 1; // Scroll an hour before current time
 
+
+
+    const generateTimeSlots = () => {
+        if (!filteredRooms.length || !selectedDate) {
+            return [];
+        }
+
+        const slots = [];
+        const startHour = 6; // Start at 6 AM
+        const endHour = 26;
+        const currentDate = new Date(selectedDate);
+        currentDate.setHours(0, 0, 0, 0); // Set to start of the day
+
+        filteredRooms.forEach(room => {
+            for (let hour = startHour; hour < endHour; hour++) {
+                for (let minute = 0; minute < 60; minute += 30) {
+                    const startTime = new Date(currentDate);
+                    startTime.setHours(hour, minute, 0, 0);
+                    const endTime = new Date(startTime);
+                    endTime.setMinutes(endTime.getMinutes() + 30);
+
+                    const isBooked = events.some(booking =>
+                        booking.resourceId === room.id &&
+                        new Date(booking.start) < endTime &&
+                        new Date(booking.end) > startTime
+                    );
+
+                    slots.push({
+                        id: `slot-${room.id}-${hour}-${minute}-${Date.now()}-${Math.random()}`, // Unique ID for each slot
+                        resourceId: room.id,
+                        start: startTime,
+                        end: endTime,
+                        display: 'background',
+                        color: isBooked ? '#D4FFFD' : '#4AE0BA',
+                        classNames: isBooked ? ['booked-slot'] : ['available-slot'],
+                        extendedProps: {
+                            isBooked: isBooked,
+                            isAvailable: !isBooked
+                        }
+                    });
+                }
+            }
+        });
+
+        return slots;
+    }
+    
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -93,17 +144,21 @@ const RoomBookingCalendar = () => {
         if (selectedBuilding) {
             const buildingRooms = rooms.filter(room => room.buildingId === selectedBuilding);
             setFilteredRooms(buildingRooms);
-            setSelectedRoom('');
         } else {
             setFilteredRooms(rooms);
         }
     }, [selectedBuilding, rooms]);
 
+    useEffect(() => {
+        const slots = generateTimeSlots();
+        setCalendarSlots(slots);
+    }, [filteredRooms, selectedDate, events]);
+
     // Transform rooms into resources for FullCalendar
     const getResources = () => {
         return filteredRooms.map(room => ({
             id: room.id,
-            title: `${room.name} - Floor ${room.floor} (${room.capacity}p)`,
+            title: `${room.id}: ${room.name}`,
             building: room.buildingName,
             eventColor: room.color,
             extendedProps: {
@@ -115,18 +170,25 @@ const RoomBookingCalendar = () => {
     };
 
     const handleDateSelect = (selectInfo) => {
-        if (!selectedRoom) {
-            alert('Please select a room before booking.');
-            selectInfo.calendar.unselect();
-            return;
+        const resourceId = selectInfo.resource?.id;
+        if (resourceId) {
+            const selectedRoomInfo = rooms.find(r => r.id === resourceId);
+            if (selectedRoomInfo) {
+                setSelectedRoom(selectedRoomInfo.id);
+                setSelectedBuilding(selectedRoomInfo.buildingId);
+            } else {
+                setSelectedRoom('');
+                setSelectedBuilding('');
+            }
         }
 
         setSelectedSlot({
             start: selectInfo.start,
             end: selectInfo.end,
-            room: selectedRoom,
+            room: resourceId,
             building: selectedBuilding
         });
+        setTimeSlotsAdded(0);
         setShowBookingForm(true);
     };
 
@@ -134,7 +196,7 @@ const RoomBookingCalendar = () => {
         e.preventDefault();
 
         if (!selectedRoom) {
-            alert('Please select a room before booking.');
+            alert('Please select a room for booking.');
             return;
         }
 
@@ -173,28 +235,6 @@ const RoomBookingCalendar = () => {
         }
     };
 
-    const handleEventClick = (clickInfo) => {
-        if (window.confirm('Delete booking "' + clickInfo.event.title + '"?')) {
-            clickInfo.event.remove();
-            alert('Booking deleted successfully!');
-        }
-    };
-    
-    const renderEventContent = (eventInfo) => {
-        return (
-            <div className="event-content">
-                <div><strong>{eventInfo.event.title}</strong></div>
-                <div className="event-time">
-                    {eventInfo.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
-                    {eventInfo.event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-                {eventInfo.event.extendedProps.userName && (
-                    <div className="event-user">Booked by: {eventInfo.event.extendedProps.userName}</div>
-                )}
-            </div>
-        );
-    };
-
     // Handle date change
     const handleDatesSet = (dateInfo) => {
         setSelectedDate(dateInfo.start);
@@ -204,7 +244,78 @@ const RoomBookingCalendar = () => {
         return rooms.filter(room => room.buildingId === buildingId);
     };
 
-    const renderCalHight = rooms.length > 0 ? 'auto' : rooms.length * 150; // Set height to auto if rooms exist, otherwise fixed height
+    const addTime = (increment = 1) => {
+        if (!selectedSlot) return;
+
+        // Calculate how many 30-minute slots we're adding
+        const slotsToAdd = increment;
+        
+        // Calculate the potential new end time
+        const newEndTime = new Date(selectedSlot.end);
+        newEndTime.setMinutes(newEndTime.getMinutes() + (30 * slotsToAdd));
+
+        // Check if extended time exceeds 2 AM (26:00)
+        const hours = newEndTime.getHours();
+        const minutes = newEndTime.getMinutes();
+        const totalHours = hours + (minutes / 60);
+        
+        if (totalHours > 26 || (totalHours === 26 && minutes > 0)) {
+            alert('Cannot extend beyond 2:00 AM');
+            return;
+        }
+
+        // Check each 30-minute segment for conflicts
+        let conflictFound = false;
+        let conflictTime = '';
+
+        for (let i = 1; i <= slotsToAdd; i++) {
+            const segmentStart = new Date(selectedSlot.end);
+            segmentStart.setMinutes(segmentStart.getMinutes() + ((i - 1) * 30));
+            
+            const segmentEnd = new Date(selectedSlot.end);
+            segmentEnd.setMinutes(segmentEnd.getMinutes() + (i * 30));
+
+            const hasConflict = events.some(booking => 
+                booking.resourceId === selectedSlot.room &&
+                new Date(booking.start) < segmentEnd &&
+                new Date(booking.end) > segmentStart
+            );
+
+            if (hasConflict) {
+                conflictFound = true;
+                conflictTime = segmentStart.toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                break;
+            }
+        }
+        
+        if (!conflictFound) {
+            setTimeSlotsAdded(timeSlotsAdded + slotsToAdd);
+            setSelectedSlot({
+                ...selectedSlot,
+                end: newEndTime
+            });
+        } else {
+            alert(`Cannot extend time. The slot starting at ${conflictTime} is already booked.`);
+        }
+    };
+
+    const subtractTime = (decrement = 1) => {
+        if (!selectedSlot || timeSlotsAdded <= 0) return;
+        
+        // Calculate new end time by subtracting 30 minutes
+        const newEndTime = new Date(selectedSlot.end);
+        newEndTime.setMinutes(newEndTime.getMinutes() - 30);
+        
+        setTimeSlotsAdded(timeSlotsAdded - decrement);
+        setSelectedSlot({
+            ...selectedSlot,
+            end: newEndTime
+        });
+    };
+
 
     return (
         <div className="room-booking-calendar">
@@ -230,41 +341,14 @@ const RoomBookingCalendar = () => {
                             >
                                 <div className="building-name">{building.name}</div>
                                 <div className="building-details">
-                                    {buildingRooms.length} rooms • Capacity: {building.capacity}
+                                    {buildingRooms.length} rooms
                                 </div>
                             </button>
                         );
                     })}
                 </div>
             </div>
-
-            <div className="room-selector">
-                <h3>Select Room</h3>
-                <div className='room-options'>
-                    {filteredRooms.map((room) => {
-                        const building = buildings.find(b => b.id === room.buildingId);
-                        return (
-                            <button
-                                key={room.id}
-                                className={`room-btn ${selectedRoom === room.id ? 'selected' : ''}`}
-                                onClick={() => setSelectedRoom(room.id)}
-                                style={{ backgroundColor: building?.color || room.color }}
-                                title={`Building: ${room.buildingName}, Floor: ${room.floor}, Capacity: ${room.capacity} people`}
-                            >
-                                <div className="room-name">{room.name}</div>
-                                <div className="room-details">
-                                    <div>Floor {room.floor}</div>
-                                    <div>{room.capacity} people</div>
-                                </div>
-                            </button>
-                        );
-                    })}
-                </div>
-                {selectedBuilding && filteredRooms.length === 0 && (
-                    <p className="no-rooms">No rooms available in this building.</p>
-                )}
-            </div>
-
+            
             <div className='calendar-wrapper'>
                 <FullCalendar
                     plugins={[resourceTimelinePlugin, interactionPlugin]}
@@ -276,19 +360,48 @@ const RoomBookingCalendar = () => {
                         right: 'resourceTimelineDay'
                     }}
                     resources={getResources()}
-                    events={events}
-                    editable={true}
+                    resourceAreaHeaderContent="Study Rooms"
+                    events={calendarSlots}
+
+                    editable={false}
+                    eventDurationEditable={false}
+                    eventStartEditable={false}
+
                     selectable={true}
                     selectMirror={true}
                     select={handleDateSelect}
-                    eventClick={handleEventClick}
-                    eventContent={renderEventContent}
+
+                    eventClick={(info) => {
+                        if (info.event.extendedProps.isBooked) {
+                            alert(`This slot is already booked for ${info.event.title}. Please select another slot.`);
+                            return false; // Prevent click action on booked slots
+                        }
+                    }}
+
+                    selectAllow={(selectInfo) => {
+                        const hasOverLap = events.some(booking =>
+                            booking.resourceId === selectInfo.resource?.id &&
+                            new Date(booking.start) < selectInfo.end &&
+                            new Date(booking.end) > selectInfo.start
+                        );
+                        return !hasOverLap;
+                    }}
+
                     height={renderCalHight}
+
+                    // Time slot settings
                     slotDuration="00:30:00" // 30 minute slots
                     slotLabelInterval="01:00:00" // Show hour labels
-                    slotMinTime="06:00:00" // Start at 0 AM
-                    slotMaxTime="26:00:00" // End at 12 PM
+                    slotMinTime="06:00:00" // Start at 6 AM
+                    slotMaxTime="26:00:00" // End at 1 AM
                     resourceAreaWidth="200px" // Width of room column
+                    snapDuration="00:30:00" // Snap to 30 minute intervals  
+
+                    selectConstraint={{
+                        start:"06:00:00",
+                        end:"26:00:00"
+                    }}
+                    
                     resourceLabelDidMount={(info) => {
                         // Add custom styling to resource headers
                         const building = buildings.find(b => 
@@ -300,7 +413,7 @@ const RoomBookingCalendar = () => {
                     }}
                     datesSet={handleDatesSet}
                     nowIndicator={true}
-                    scrollTime="07:00:00" // Scroll to 8 AM on load
+                    scrollTime={`${currentHour}:00:00`} // Scroll an hour before current time
                 />
             </div>
 
@@ -329,8 +442,38 @@ const RoomBookingCalendar = () => {
                                 }) || ''} - {selectedSlot?.end?.toLocaleString([], {
                                     hour: '2-digit',
                                     minute: '2-digit'
-                                }) || ''}
-                            </p>
+                                }) || ''} 
+                                <div className="time-controls" style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '5px' }}>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => subtractTime()}
+                                        disabled={timeSlotsAdded <= 0}
+                                        className="time-control-btn"
+                                        style={{
+                                            padding: '5px 10px',
+                                            backgroundColor: timeSlotsAdded <= 0 ? '#ccc' : '#ff6b6b',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: timeSlotsAdded <= 0 ? 'not-allowed' : 'pointer'
+                                        }}
+                                    >- 30 min</button>
+                                    <span style={{ fontWeight: 'bold' }}>
+                                        Duration: {((timeSlotsAdded + 1) * 30)} minutes
+                                    </span>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => addTime()}
+                                        className="time-control-btn"
+                                        style={{
+                                            padding: '5px 10px',
+                                            backgroundColor: '#4AE0BA',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer'
+                                        }}>+ 30 min</button>
+                                </div>
+                            </p> 
                             <p>
                                 <strong>Date:</strong> {selectedSlot?.start?.toLocaleDateString() || ''}
                             </p>
