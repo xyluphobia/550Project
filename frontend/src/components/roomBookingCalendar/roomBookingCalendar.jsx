@@ -235,6 +235,10 @@ const RoomBookingCalendar = () => {
         }
     };
 
+    // Add check for login status before allowing booking submission
+    // Add Check for past date selection before allowing booking submission
+    // Remove option to select past dates and times in the calendar
+
     // Handle date change
     const handleDatesSet = (dateInfo) => {
         setSelectedDate(dateInfo.start);
@@ -524,25 +528,26 @@ const RoomBookingCalendar = () => {
             )}
 
             <div className='legend'>
-                <h3>Building & Room Legend</h3>
-                {buildings.map((building) => {
-                    const buildingRooms = getRoomsForBuilding(building.id);
-                    return (
-                        <div key={building.id} className='building-legend'>
-                            <h4 style={{ color: building.color }}>
-                                {building.name} ({buildingRooms.length} rooms)
-                            </h4>
-                            {buildingRooms.map((room) => (
-                                <div key={room.id} className='legend-item'>
-                                    <span className='color-box' style={{ backgroundColor: building.color }}></span>
-                                    <span>
-                                        <strong>{room.name}</strong> - Floor {room.floor}, Capacity: {room.capacity} people
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    );
-                })}
+                <h3>Legend</h3>
+                <div className='legend-items'>
+                    <div className='legend-item'>
+                        <div className='legend-block' style={{ backgroundColor: '#4AE0BA' }}></div>
+                        <span className='legend-color'>Available</span>
+                    </div>
+                    <div className='legend-item'>
+                        <div className='legend-block' style={{ backgroundColor: '#c26efe' }}></div>
+                        <span className='legend-color'>Your Booking</span>
+                    </div>
+                    <div className='legend-item'>
+                        <div className='legend-block' style={{ backgroundColor: '#ff6b6b' }}></div>
+                        <span className='legend-color'>Booked</span>
+                    </div>
+                    <div className='legend-item'>
+                        <div className='legend-block' style={{ backgroundColor: '#d3d3d3' }}></div>
+                        <span className='legend-color'>Unavailable</span>
+                    </div>
+                </div>
+                
             </div>
 
         </div>

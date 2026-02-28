@@ -32,7 +32,7 @@ function Home() {
             </main>
             
             <footer>
-                <p>&copy; 2026</p>
+                <p>&copy; 2026 - CSC550 Software Engineering</p>
             </footer>
         </div>
     );
@@ -57,7 +57,7 @@ function EquipmentPage() {
                 
             </main>
             <footer>
-                <p>&copy; 2026</p>
+                <p>&copy; 2026 - CSC550 Software Engineering</p>
             </footer>
         </div>
     );
@@ -208,7 +208,7 @@ function LoginPage() {
             </main>
 
             <footer>
-                <p>&copy; 2026</p>
+                <p>&copy; 2026 - CSC550 Software Engineering</p>
             </footer>
         </div>
     );
