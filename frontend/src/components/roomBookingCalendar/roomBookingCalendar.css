@@ -1,0 +1,276 @@
+.room-booking-calendar {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.building-selector {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+.building-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.building-btn {
+    padding: 10px 15px;
+    background: #fff;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.building-btn:hover {
+    border-color: #007bff;
+    background: #e7f1ff;
+}
+
+.building-btn.selected {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.room-selector {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+.room-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.room-btn {
+    padding: 15px;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    color: white;
+    text-align: left;
+    transition: all 0.3s ease;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.room-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.room-btn.selected {
+    border-color: white;
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.5), 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.room-name {
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.room-details {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.calendar-wrapper {
+    margin: 20px 0;
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.booking-form-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.booking-form {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.booking-location {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+}
+
+.booking-form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.booking-form-fields input,
+.booking-form-fields textarea {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.booking-form-fields textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.form-buttons button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.form-buttons button:first-child {
+    background: #6c757d;
+    color: white;
+}
+
+.form-buttons button:last-child {
+    background: #28a745;
+    color: white;
+}
+
+.form-buttons button:last-child:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+}
+
+.form-buttons button:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.legend {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.building-legend {
+    margin-bottom: 15px;
+}
+
+.building-legend h4 {
+    margin: 10px 0;
+    color: #333;
+}
+
+.legend {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 0;
+    padding: 5px 5px;
+}
+
+.legend h3 {
+    margin: 0;
+    padding: 5px 0;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 5px 0;
+    padding: 5px;
+}
+
+.legend-block {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.color-box {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.event-content {
+    padding: 4px;
+    font-size: 12px;
+}
+
+.event-room {
+    font-size: 11px;
+    opacity: 0.9;
+}
+
+.event-building {
+    font-size: 10px;
+    opacity: 0.7;
+    font-style: italic;
+}
+
+.no-rooms {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .building-options,
+    .room-options {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+    
+    .room-btn {
+        padding: 10px;
+        min-height: 50px;
+    }
+    
+    .booking-form {
+        width: 95%;
+        padding: 20px;
+    }
+}

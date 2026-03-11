@@ -16,9 +16,15 @@ router.get('/', async (req, res) => {
 
 // GET equipment by id
 router.get('/:equipment_id', async (req, res) => {
+<<<<<<< HEAD
   const { equipment_id } = req.params;
   try {
     const eq = await query('SELECT * FROM equipment WHERE id = ?', [equipment_id]);
+=======
+  const { id } = req.params;
+  try {
+    const eq = await query('SELECT * FROM equipment WHERE id = ?', [id]);
+>>>>>>> frontend
     if (!eq.length) return res.status(404).json({ error: 'Equipment not found' });
     res.json(eq[0]);
   } catch (err) {
@@ -29,11 +35,19 @@ router.get('/:equipment_id', async (req, res) => {
 
 // POST new equipment
 router.post('/', async (req, res) => {
+<<<<<<< HEAD
   const { equipment_name, equipment_category, equipment_description, total_quantity, avilable_quantity, is_active } = req.body;
   try {
     const result = await query(
       'INSERT INTO equipment ( equipment_name, equipment_category, equipment_description, total_quantity, avilable_quantity, is_active ) VALUES (?, ?, ?, ?, ?, ?)',
       [equipment_name, quantity]
+=======
+  const { name, quantity } = req.body;
+  try {
+    const result = await query(
+      'INSERT INTO equipment (name, quantity) VALUES (?, ?)',
+      [name, quantity]
+>>>>>>> frontend
     );
     const newEq = await query('SELECT * FROM equipment WHERE id = ?', [result.insertId]);
     res.status(201).json(newEq[0]);
@@ -45,11 +59,19 @@ router.post('/', async (req, res) => {
 
 // PUT update equipment
 router.put('/:equipment_id', async (req, res) => {
+<<<<<<< HEAD
   const { equipment_id } = req.params;
   const { equipment_name, equipment_category, equipment_description, total_quantity, avilable_quantity, is_active } = req.body;
   try {
     await query('UPDATE equipment SET name = ?, quantity = ? WHERE id = ?', [ equipment_id, equipment_name, equipment_category, equipment_description, total_quantity, avilable_quantity, is_active ]);
     const updatedEq = await query('SELECT * FROM equipment WHERE id = ?', [equipment_id]);
+=======
+  const { id } = req.params;
+  const { name, quantity } = req.body;
+  try {
+    await query('UPDATE equipment SET name = ?, quantity = ? WHERE id = ?', [name, quantity, id]);
+    const updatedEq = await query('SELECT * FROM equipment WHERE id = ?', [id]);
+>>>>>>> frontend
     res.json(updatedEq[0]);
   } catch (err) {
     console.error(err);
@@ -59,9 +81,15 @@ router.put('/:equipment_id', async (req, res) => {
 
 // DELETE equipment
 router.delete('/:equipment_id', async (req, res) => {
+<<<<<<< HEAD
   const { equipment_id } = req.params;
   try {
     await query('DELETE FROM equipment WHERE id = ?', [equipment_id]);
+=======
+  const { id } = req.params;
+  try {
+    await query('DELETE FROM equipment WHERE id = ?', [id]);
+>>>>>>> frontend
     res.json({ message: 'Equipment deleted' });
   } catch (err) {
     console.error(err);

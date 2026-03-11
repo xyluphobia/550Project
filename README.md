@@ -127,7 +127,7 @@ Frontend runs at:
 http://localhost:3000
 
 Backend API runs at:
-http://localhost:5000
+http://localhost:5173
 
 ## Testing
 Backend
