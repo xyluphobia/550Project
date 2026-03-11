@@ -18,14 +18,9 @@ mariadb $DB_NAME < database/migrations/001_create_users_table.sql
 mariadb $DB_NAME < database/migrations/002_create_rooms_table.sql
 mariadb $DB_NAME < database/migrations/003_create_equipment_table.sql
 mariadb $DB_NAME < database/migrations/004_create_bookings_table.sql
-<<<<<<< HEAD
 mariadb $DB_NAME < database/migrations/005_create_booking_rooms_table.sql
 mariadb $DB_NAME < database/migrations/006_create_booking_equipment_table.sql
 mariadb $DB_NAME < database/migrations/007_add_booking_indexes.sql
-=======
-mariadb $DB_NAME < database/migrations/005_create_bookings_rooms_table.sql
-mariadb $DB_NAME < database/migrations/006_create_bookings_equipment_table.sql
->>>>>>> frontend
 
 echo "✅ Migrations complete!"
 

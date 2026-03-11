@@ -16,15 +16,9 @@ router.get('/', async (req, res) => {
 
 // GET booking by id
 router.get('/:booking_id', async (req, res) => {
-<<<<<<< HEAD
   const { booking_id } = req.params;
   try {
     const booking = await query('SELECT * FROM bookings WHERE id = ?', [booking_id]);
-=======
-  const { id } = req.params;
-  try {
-    const booking = await query('SELECT * FROM bookings WHERE id = ?', [id]);
->>>>>>> frontend
     if (!booking.length) return res.status(404).json({ error: 'Booking not found' });
     res.json(booking[0]);
   } catch (err) {
@@ -35,7 +29,6 @@ router.get('/:booking_id', async (req, res) => {
 
 // POST new booking
 router.post('/', async (req, res) => {
-<<<<<<< HEAD
   const { uncw_id, booking_type, start_time, end_time, created_at, notes = null, group_size = null, is_joinable = null, room_id = null, equipment_id = null, quantity_requested = null } = req.body;
 
   // Basic Validation
@@ -168,53 +161,17 @@ router.post('/', async (req, res) => {
     res.status(500).json({ error: 'Database error.' });
   } finally {
     connection.release();
-=======
-  const { userId, startTime, endTime, roomIds = [], equipmentIds = [] } = req.body;
-
-  try {
-    // Create booking
-    const result = await query(
-      'INSERT INTO bookings (user_id, start_time, end_time) VALUES (?, ?, ?)',
-      [userId, startTime, endTime]
-    );
-    const bookingId = result.insertId;
-
-    // Add rooms
-    for (const roomId of roomIds) {
-      await query('INSERT INTO bookings_rooms (booking_id, room_id) VALUES (?, ?)', [bookingId, roomId]);
-    }
-
-    // Add equipment
-    for (const eqId of equipmentIds) {
-      await query('INSERT INTO bookings_equipment (booking_id, equipment_id) VALUES (?, ?)', [bookingId, eqId]);
-    }
-
-    const newBooking = await query('SELECT * FROM bookings WHERE id = ?', [bookingId]);
-    res.status(201).json(newBooking[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Database error' });
->>>>>>> frontend
   }
 });
 
 // DELETE booking
 router.delete('/:booking_id', async (req, res) => {
-<<<<<<< HEAD
   const { booking_id } = req.params;
   try {
     // Delete booking-related rooms and equipment first
     await query('DELETE FROM booking_rooms WHERE booking_id = ?', [booking_id]);
     await query('DELETE FROM booking_equipment WHERE booking_id = ?', [booking_id]);
     await query('DELETE FROM bookings WHERE id = ?', [booking_id]);
-=======
-  const { id } = req.params;
-  try {
-    // Delete booking-related rooms and equipment first
-    await query('DELETE FROM bookings_rooms WHERE booking_id = ?', [id]);
-    await query('DELETE FROM bookings_equipment WHERE booking_id = ?', [id]);
-    await query('DELETE FROM bookings WHERE id = ?', [id]);
->>>>>>> frontend
 
     res.json({ message: 'Booking deleted' });
   } catch (err) {
