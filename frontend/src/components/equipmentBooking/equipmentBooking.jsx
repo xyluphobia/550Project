@@ -12,10 +12,18 @@ const EquipmentBooking = () => {
         { id: 'laptop', name: 'laptop-2'},
         { id: 'laptop', name: 'laptop-3'},
         { id: 'laptop', name: 'laptop-4'},
-        { id: 'Desktop', name: 'Desktop-1'},
-        { id: 'Desktop', name: 'Desktop-2'},
-        { id: 'Desktop', name: 'Desktop-3'},
-        { id: 'Desktop', name: 'Desktop-4'},
+        { id: 'DesktopGIS', name: 'Desktop-1-GIS'},
+        { id: 'DesktopGIS', name: 'Desktop-2-GIS'},
+        { id: 'DesktopGIS', name: 'Desktop-3-GIS'},
+        { id: 'DesktopGIS', name: 'Desktop-4-GIS'},
+        { id: 'DesktopDATA', name: 'Desktop-1-DATA-NVivo'},
+        { id: 'DesktopDATA', name: 'Desktop-2-DATA-NVivo'},
+        { id: 'DesktopDATA', name: 'Desktop-3-DATA-NVivo'},
+        { id: 'DesktopDATA', name: 'Desktop-4-DATA-NVivo'},
+        { id: 'DesktopBloomberg', name: 'Desktop-1-Bloomberg'},
+        { id: 'DesktopBloomberg', name: 'Desktop-2-Bloomberg'},
+        { id: 'DesktopBloomberg', name: 'Desktop-3-Bloomberg'},
+        { id: 'DesktopBloomberg', name: 'Desktop-4-Bloomberg'},
     ];
 
     const backupList = backupArray.map((item) =>
