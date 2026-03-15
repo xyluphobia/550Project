@@ -2,6 +2,7 @@
   "name": "csc550-project",
   "name": "csc550-project",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && npm run dev",
@@ -14,7 +15,6 @@
     "db:reset": "./database/run-migrations.sh && node ./database/seeds/seedAll.js",
 
     "start": "npm run dev",
-    "install-all": "npm install && cd backend && npm install && cd ../frontend/my-app && npm install"
     "install-all": "npm install && cd backend && npm install && cd ../frontend/my-app && npm install"
   },
 

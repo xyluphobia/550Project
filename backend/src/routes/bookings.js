@@ -1,5 +1,5 @@
 import express from 'express';
-import { query } from '../db.js';
+import { query, pool } from '../db.js';
 
 const router = express.Router();
 
@@ -120,8 +120,8 @@ router.post('/', async (req, res) => {
 
     const [result] = await connection.query(`
       INSERT INTO bookings
-      (uncw_id, booking_type, start_time, end_time, created_at, notes, group_size, is_joinable)
-      VALUES (?, ?, ?, ?, NOW(), ?, ?, ?)
+      (uncw_id, booking_type, start_time, end_time, created_at, notes)
+      VALUES (?, ?, ?, ?, NOW(), ?)
     `, [
       uncw_id,
       booking_type,
@@ -136,9 +136,9 @@ router.post('/', async (req, res) => {
 
     if (room_id) {
       await connection.query(`
-        INSERT INTO booking_rooms (booking_id, room_id)
-        VALUES (?, ?)
-      `, [booking_id, room_id]);
+        INSERT INTO booking_rooms (booking_id, room_id, group_size, is_joinable)
+        VALUES (?, ?, ?, ?)
+      `, [booking_id, room_id, group_size, is_joinable]);
     }
 
     if (equipment_id) {
@@ -171,7 +171,7 @@ router.delete('/:booking_id', async (req, res) => {
     // Delete booking-related rooms and equipment first
     await query('DELETE FROM booking_rooms WHERE booking_id = ?', [booking_id]);
     await query('DELETE FROM booking_equipment WHERE booking_id = ?', [booking_id]);
-    await query('DELETE FROM bookings WHERE id = ?', [booking_id]);
+    await query('DELETE FROM bookings WHERE booking_id = ?', [booking_id]);
 
     res.json({ message: 'Booking deleted' });
   } catch (err) {

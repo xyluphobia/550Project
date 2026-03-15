@@ -1,4 +1,4 @@
-import { query } from '../src/db.js';
+import { query } from '../../backend/src/db.js';
 
 export async function seedRooms() {
   console.log('Seeding rooms...');
