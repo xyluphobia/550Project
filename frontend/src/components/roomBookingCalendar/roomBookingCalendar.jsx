@@ -26,10 +26,11 @@ const RoomBookingCalendar = () => {
         userEmail: '',
     });
 
-    const API_BASE_URL = 'http://localhost:5000/api';
-    const BUILDINGS_API_URL = `${API_BASE_URL}/buildings`;
+    const API_BASE_URL = '/api';
+    // const BUILDINGS_API_URL = `${API_BASE_URL}/buildings`;
     const ROOMS_API_URL = `${API_BASE_URL}/rooms`;
     const BOOKINGS_API_URL = `${API_BASE_URL}/bookings`;
+
     const renderCalHight = rooms.length > 0 ? 'auto' : rooms.length * 150; // Set height to auto if rooms exist, otherwise fixed height
     const currentHour = new Date().getHours() - 1; // Scroll an hour before current time
 
@@ -86,9 +87,9 @@ const RoomBookingCalendar = () => {
                 setLoading(true);
                 setError(null);
                 
-                const buildingsResponse = await axios.get(BUILDINGS_API_URL);
-                console.log('Buildings data:', buildingsResponse.data);
-                setBuildings(buildingsResponse.data);
+                // const buildingsResponse = await axios.get(BUILDINGS_API_URL);
+                // console.log('Buildings data:', buildingsResponse.data);
+                // setBuildings(buildingsResponse.data);
                 
                 const roomsResponse = await axios.get(ROOMS_API_URL);
                 console.log('Rooms data:', roomsResponse.data);
