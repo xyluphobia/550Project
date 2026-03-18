@@ -58,6 +58,7 @@ const RoomBookingCalendar = () => {
         title: '',
         description: '',
         userName: '',
+        uncw_id: '',
         userEmail: '',
     });
 
@@ -137,16 +138,38 @@ const RoomBookingCalendar = () => {
                     axios.get(BOOKINGS_API_URL)
                 ]);
 
-                setRooms(roomsResponse.data);
-                setFilteredRooms(roomsResponse.data);
+                // Transform API rooms to component format
+                const apiRooms = roomsResponse.data;
+                const uniqueBuildings = [...new Set(apiRooms.map(room => room.building_name))];
+                const transformedBuildings = uniqueBuildings.map((buildingName, index) => ({
+                    id: `bldg${index + 1}`,
+                    name: buildingName,
+                    color: FALLBACK_BUILDINGS[index % FALLBACK_BUILDINGS.length]?.color || CALENDAR_CONFIG.COLORS.DEFAULT_EVENT
+                }));
+
+                const transformedRooms = apiRooms.map(room => {
+                    const building = transformedBuildings.find(b => b.name === room.building_name);
+                    return {
+                        id: room.room_id.toString(),
+                        name: room.room_code,
+                        buildingId: building?.id || '',
+                        buildingName: room.building_name,
+                        capacity: room.room_capacity,
+                        floor: '' // Not available in DB currently
+                    };
+                });
+
+                setBuildings(transformedBuildings);
+                setRooms(transformedRooms);
+                setFilteredRooms(transformedRooms);
                 
                 setEvents(bookingsResponse.data.map(booking => ({
                     ...booking,
-                    resourceId: booking.roomId || booking.room,
-                    start: booking.startTime,
-                    end: booking.endTime,
-                    title: booking.eventName || booking.title,
-                    color: booking.roomColor || CALENDAR_CONFIG.COLORS.DEFAULT_EVENT
+                    resourceId: booking.room_id,
+                    start: booking.start_time,
+                    end: booking.end_time,
+                    title: booking.notes || 'Booked',
+                    color: CALENDAR_CONFIG.COLORS.BOOKED
                 })));
                 
             } catch (err) {
@@ -225,36 +248,75 @@ const RoomBookingCalendar = () => {
         const roomInfo = getRoomById(selectedRoom);
         const buildingInfo = getBuildingById(selectedBuilding);
 
-        const newBooking = {
-            id: `booking-${Date.now()}`,
-            resourceId: selectedRoom,
-            title: bookingDetails.title,
-            start: selectedSlot.start,
-            end: selectedSlot.end,
-            room: selectedRoom,
-            building: selectedBuilding,
-            buildingName: buildingInfo?.name || '',
-            roomName: roomInfo?.name || '',
-            description: bookingDetails.description,
-            userName: bookingDetails.userName,
-            userEmail: bookingDetails.userEmail,
-            color: roomInfo?.color || CALENDAR_CONFIG.COLORS.DEFAULT_EVENT
+        // Format dates for MySQL (YYYY-MM-DD HH:MM:SS)
+        const formatDateTime = (date) => {
+            return date.toISOString().slice(0, 19).replace('T', ' ');
         };
 
         try {
+            // First, ensure the user exists
+            const userData = {
+                uncw_id: parseInt(bookingDetails.uncw_id),
+                first_name: bookingDetails.userName.split(' ')[0] || '',
+                last_name: bookingDetails.userName.split(' ').slice(1).join(' ') || '',
+                email: bookingDetails.userEmail,
+                role: 'student',
+                is_active: 1
+            };
+
+            try {
+                // Try to create the user (will fail if already exists due to unique constraints)
+                await axios.post(`${API_BASE_URL}/users`, userData);
+            } catch (userError) {
+                // User might already exist, that's okay
+                console.log('User may already exist:', userError.response?.data?.error);
+            }
+
+            // Now create the booking
+            const bookingData = {
+                uncw_id: parseInt(bookingDetails.uncw_id),
+                booking_type: 'room',
+                start_time: formatDateTime(selectedSlot.start),
+                end_time: formatDateTime(selectedSlot.end),
+                notes: `${bookingDetails.title}: ${bookingDetails.description}`,
+                room_id: parseInt(selectedRoom),
+                group_size: roomInfo?.capacity || null,
+                is_joinable: false
+            };
+
+            const response = await axios.post(BOOKINGS_API_URL, bookingData);
+            
+            // Add the new booking to events
+            const newBooking = {
+                id: `booking-${response.data.booking_id}`,
+                resourceId: selectedRoom,
+                title: bookingDetails.title,
+                start: selectedSlot.start,
+                end: selectedSlot.end,
+                room: selectedRoom,
+                building: selectedBuilding,
+                buildingName: buildingInfo?.name || '',
+                roomName: roomInfo?.name || '',
+                description: bookingDetails.description,
+                userName: bookingDetails.userName,
+                uncw_id: bookingDetails.uncw_id,
+                color: roomInfo?.color || CALENDAR_CONFIG.COLORS.DEFAULT_EVENT
+            };
+
             setEvents([...events, newBooking]);
             setShowBookingForm(false);
             setBookingDetails({
                 title: '',
                 description: '',
                 userName: '',
+                uncw_id: '',
                 userEmail: '',
             });
             EmailJSConfigBooking({ events: [...events, newBooking], rooms, buildings, loading: false, error: null });
             alert('Booking created successfully!');
         } catch (error) {
             console.error('Error creating booking:', error);
-            alert('Failed to create booking.');
+            alert('Failed to create booking: ' + (error.response?.data?.error || error.message));
         }
     };
 
@@ -435,6 +497,13 @@ const RoomBookingCalendar = () => {
                             required
                         />
                         <input 
+                            type="number" 
+                            placeholder='UNCW ID *'
+                            value={bookingDetails.uncw_id}
+                            onChange={(e) => setBookingDetails({...bookingDetails, uncw_id: e.target.value})}
+                            required
+                        />
+                        <input 
                             type="email" 
                             placeholder='Your Email *'
                             value={bookingDetails.userEmail}
@@ -453,7 +522,7 @@ const RoomBookingCalendar = () => {
                             <button
                                 type="submit"
                                 onClick={handleBookingSubmit}
-                                disabled={!bookingDetails.title || !bookingDetails.userName || !bookingDetails.userEmail}
+                                disabled={!bookingDetails.title || !bookingDetails.userName || !bookingDetails.uncw_id || !bookingDetails.userEmail}
                             >
                                 Confirm Booking
                             </button>

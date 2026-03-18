@@ -6,7 +6,12 @@ const router = express.Router();
 // GET all bookings
 router.get('/', async (req, res) => {
   try {
-    const bookings = await query('SELECT * FROM bookings');
+    const bookings = await query(`
+      SELECT b.*, br.room_id, be.equipment_id, be.quantity_requested
+      FROM bookings b
+      LEFT JOIN booking_rooms br ON b.booking_id = br.booking_id
+      LEFT JOIN booking_equipment be ON b.booking_id = be.booking_id
+    `);
     res.json(bookings);
   } catch (err) {
     console.error(err);
