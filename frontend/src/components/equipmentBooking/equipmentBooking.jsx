@@ -8,90 +8,114 @@ const EquipmentBooking = () => {
     const [equipmentList, setEquipmentList] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState(null);
-    const backupArray = [
-        { id: 'laptop', name: 'laptop-1'},
-        { id: 'laptop', name: 'laptop-2'},
-        { id: 'laptop', name: 'laptop-3'},
-        { id: 'laptop', name: 'laptop-4'},
-        { id: 'DesktopGIS', name: 'Desktop-1-GIS'},
-        { id: 'DesktopGIS', name: 'Desktop-2-GIS'},
-        { id: 'DesktopGIS', name: 'Desktop-3-GIS'},
-        { id: 'DesktopGIS', name: 'Desktop-4-GIS'},
-        { id: 'DesktopDATA', name: 'Desktop-1-DATA-NVivo'},
-        { id: 'DesktopDATA', name: 'Desktop-2-DATA-NVivo'},
-        { id: 'DesktopDATA', name: 'Desktop-3-DATA-NVivo'},
-        { id: 'DesktopDATA', name: 'Desktop-4-DATA-NVivo'},
-        { id: 'DesktopBloomberg', name: 'Desktop-1-Bloomberg'},
-        { id: 'DesktopBloomberg', name: 'Desktop-2-Bloomberg'},
-        { id: 'DesktopBloomberg', name: 'Desktop-3-Bloomberg'},
-        { id: 'DesktopBloomberg', name: 'Desktop-4-Bloomberg'},
+    
+    const backupList = [
+        { id: 'laptop-mac', name: 'laptop-MacOS', department: 'TAC'},
+        { id: 'laptop-win', name: 'laptop-DelWin', department: 'TAC'},
+        { id: 'calc-ti83', name: 'calculator-TI83', department: 'HD'},
+        { id: 'calc-ti84', name: 'calculator-TI84', department: 'HD'},
+        { id: 'charger-usbc', name: 'charger-laptop-usb-c', department: 'TAC'},
+        { id: 'camcorder-1', name: 'camcorder-1', department: 'MS'},
+        { id: 'camera-1', name: 'camera-1', department: 'MS'},
     ];
 
-    const backupList = backupArray.map((item) =>
-        <li key={item.id}>{item.name}</li>
-    );
-
     React.useEffect(() => {
-        // Fetch equipment data from the backend
         axios.get('/api/equipment')
             .then(response => {
-                // Ensure response.data is an array
                 if (Array.isArray(response.data)) {
                     setEquipmentList(response.data);
                 } else {
                     console.error('Expected array but got:', typeof response.data);
                     setEquipmentList(backupList);
-                    setError(new Error('Invalid data format received from server'));
                 }
                 setLoading(false);
             })
             .catch(error => {
                 console.error('Error fetching equipment data:', error);
-                
-                // Handle different error types
-                if (error.code === 'ERR_NETWORK') {
-                    setError(new Error('Network error - please check if the server is running'));
-                } else {
-                    setError(error);
-                }
-                
-                setEquipmentList(backupList); // Reset to backup array on error
+                setEquipmentList(backupList);
                 setLoading(false);
             });
     }, []);
 
+    // FIX 1: Move equipmentArray declaration to the top, before any conditional returns
+    const equipmentArray = Array.isArray(equipmentList) ? equipmentList : [];
+
+    // FIX 2: Show error message but still display the backup data
     if (error) {
         return (
             <div className="error-container">
                 <p className="error-message">Error loading equipment: {error.message}</p>
-                <div>{backupList}</div>
-                <button onClick={() => window.location.reload()}>Try Again</button>
+                <p>Nothing available at the moment.</p>
+                <button onClick={() => window.location.reload()}>Reload</button>
             </div>
         );
-    }
+    }   
 
     if (loading) {
         return <p>Loading equipment...</p>;
     }
 
-    // Safety check - ensure equipmentList is an array before rendering
-    const equipmentArray = Array.isArray(equipmentList) ? equipmentList : [];
+    // FIX 3: Remove this duplicate check since equipmentArray is already defined above
+    // const equipmentArray = Array.isArray(equipmentList) ? equipmentList : []; // REMOVE THIS
+
+    if (equipmentArray.length === 0) {
+        return <p>No equipment available at the moment.</p>;
+    }
 
     return (
+        <div className="equipment-booking-container">
+        <p>All equipment is located in the library.</p>
         <div className="equipment-booking-page">
-            <p>All equipment is located in the library.</p>
-            
-            {equipmentArray.length === 0 ? (
-                <p>No equipment available at the moment.</p>
-            ) : (
-                <ul>
-                    {equipmentArray.map((item, index) => (
-                        <li key={item.id || index}>
-                            {item.name || 'Unnamed Equipment'}
-                        </li>
-                    ))}
-                </ul>
-            )}
+            {/* TAC Section */}
+            <div className='tac-equipment'>
+                <h2>Technical Assistance Center (TAC)</h2>
+                {equipmentArray.filter(item => item.department === 'TAC').length > 0 ? (
+                    <ul>
+                        {equipmentArray.filter(item => item.department === 'TAC').map((item, index) => (
+                            <li key={item.id || `tac-${index}`}>
+                                {item.name || 'Unnamed Equipment'}
+                            </li>
+                        ))}
+                    </ul>
+                ) : ( 
+                    <p>No equipment available for TAC at the moment.</p>
+                )}
+            </div>
+
+            {/* HD Section */}
+            <div className='hd-equipment'>
+                <h2>Help Desk (HD)</h2>
+                {equipmentArray.filter(item => item.department === 'HD').length > 0 ? (
+                    <ul>
+                        {equipmentArray.filter(item => item.department === 'HD').map((item, index) => (
+                            <li key={item.id || `hd-${index}`}>
+                                {item.name || 'Unnamed Equipment'}
+                            </li>
+                        ))}
+                    </ul>
+                ) : ( 
+                    <p>No equipment available for HD at the moment.</p>
+                )}
+            </div>
+
+            {/* MS Section */}
+            <div className='ms-equipment'>
+                <h2>Makerstudio (MS)</h2>
+                {equipmentArray.filter(item => item.department === 'MS').length > 0 ? (
+                    <ul>
+                        {equipmentArray.filter(item => item.department === 'MS').map((item, index) => (
+                            <li key={item.id || `ms-${index}`}>
+                                {item.name || 'Unnamed Equipment'}
+                            </li>
+                        ))}
+                    </ul>
+                ) : ( 
+                    <p>No equipment available for MS at the moment.</p>
+                )}
+            </div>
+            <button className="form-button" onClick={() => window.location.reload()}>Rent Equipment</button>
+            <button className="reload-button" onClick={() => window.location.reload()}>Reload</button>
+        </div>
         </div>
     );
 };

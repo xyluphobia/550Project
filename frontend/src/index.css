@@ -40,12 +40,11 @@ header {
 }
 
 nav {
-  background-color: rgba(32,189,148,0.8);
+  background-color: rgb(4, 120, 123);
   display: block;
   text-align: center;
   border: 2.5px solid black;
   border-radius: 15px;
-  margin-top: 2px; /** white line above the nav under the header**/
   padding: 0 15px;
 
   & ul {
@@ -119,7 +118,7 @@ main {
   }
 
   & .submit-btn {
-    background-color: rgba(32,189,148,0.8);
+    background-color: rgb(4, 120, 123);
     color: black;
     display: flex;
     justify-content: center;
@@ -137,7 +136,7 @@ main {
 footer {
   font-size: 85%;
   text-align: center;
-  background-color: rgba(32,189,148,0.8);
+  background-color: rgb(4, 120, 123);
   padding: 15px 30px;
-  color: black;
+  color: white;
 }
