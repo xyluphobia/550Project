@@ -30,7 +30,7 @@ function Home() {
             
             <footer>
                 <p>&copy; 2026 - CSC550 Software Engineering</p>
-                <p>Contact us at ____@</p>
+                <p>Contact us at uncwcoral@gmail.com</p>
             </footer>
         </div>
     );
@@ -61,7 +61,7 @@ function EquipmentPage() {
             </main>
             <footer>
                 <p>&copy; 2026 - CSC550 Software Engineering</p>
-                <p>Contact us at ____@</p>
+                <p>Contact us at uncwcoral@gmail.com</p>
             </footer>
         </div>
     );
