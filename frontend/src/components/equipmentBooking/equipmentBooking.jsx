@@ -8,6 +8,9 @@ const EquipmentBooking = () => {
     const [equipmentList, setEquipmentList] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState(null);
+    const [selectedEquipment, setSelectedEquipment] = React.useState(null);
+    const [bookingSuccess, setBookingSuccess] = React.useState(false);
+    const [showForm, setShowForm] = React.useState(false);
     
     const backupList = [
         { id: 'laptop-mac', name: 'laptop-MacOS', department: 'TAC'},
@@ -37,10 +40,27 @@ const EquipmentBooking = () => {
             });
     }, []);
 
-    // FIX 1: Move equipmentArray declaration to the top, before any conditional returns
     const equipmentArray = Array.isArray(equipmentList) ? equipmentList : [];
 
-    // FIX 2: Show error message but still display the backup data
+    const handleRentClick = () => {
+        setShowForm(true);
+    };
+
+    const handleEquipmentSelect = (equipment) => {
+        setSelectedEquipment(equipment);
+        setBookingSuccess(true);
+        setTimeout(() => {
+            setBookingSuccess(false);
+            setShowForm(false);
+            setSelectedEquipment(null);
+        }, 3000);
+    };
+
+    const handleCloseForm = () => {
+        setShowForm(false);
+        setSelectedEquipment(null);
+    };
+
     if (error) {
         return (
             <div className="error-container">
@@ -55,11 +75,18 @@ const EquipmentBooking = () => {
         return <p>Loading equipment...</p>;
     }
 
-    // FIX 3: Remove this duplicate check since equipmentArray is already defined above
-    // const equipmentArray = Array.isArray(equipmentList) ? equipmentList : []; // REMOVE THIS
-
     if (equipmentArray.length === 0) {
-        return <p>No equipment available at the moment.</p>;
+          return (
+            <div>
+                <p>No equipment available at the moment.</p>
+                <p>Showing backup equipment list:</p>
+                <ul>
+                    {backupList.map((item, index) => (
+                        <li key={item.id || index}>{item.name} ({item.department})</li>
+                    ))}
+                </ul>
+            </div>
+        );
     }
 
     return (
@@ -74,6 +101,13 @@ const EquipmentBooking = () => {
                         {equipmentArray.filter(item => item.department === 'TAC').map((item, index) => (
                             <li key={item.id || `tac-${index}`}>
                                 {item.name || 'Unnamed Equipment'}
+                                    <button 
+                                        className="select-button" 
+                                        onClick={() => handleEquipmentSelect(item)}
+                                        style={{marginLeft: '10px', padding: '2px 8px'}}
+                                    >
+                                        Select
+                                    </button>
                             </li>
                         ))}
                     </ul>
@@ -90,6 +124,13 @@ const EquipmentBooking = () => {
                         {equipmentArray.filter(item => item.department === 'HD').map((item, index) => (
                             <li key={item.id || `hd-${index}`}>
                                 {item.name || 'Unnamed Equipment'}
+                                    <button 
+                                        className="select-button" 
+                                        onClick={() => handleEquipmentSelect(item)}
+                                        style={{marginLeft: '10px', padding: '2px 8px'}}
+                                    >
+                                        Select
+                                    </button>
                             </li>
                         ))}
                     </ul>
@@ -106,6 +147,13 @@ const EquipmentBooking = () => {
                         {equipmentArray.filter(item => item.department === 'MS').map((item, index) => (
                             <li key={item.id || `ms-${index}`}>
                                 {item.name || 'Unnamed Equipment'}
+                                    <button 
+                                        className="select-button" 
+                                        onClick={() => handleEquipmentSelect(item)}
+                                        style={{marginLeft: '10px', padding: '2px 8px'}}
+                                    >
+                                        Select
+                                    </button>
                             </li>
                         ))}
                     </ul>
@@ -113,7 +161,7 @@ const EquipmentBooking = () => {
                     <p>No equipment available for MS at the moment.</p>
                 )}
             </div>
-            <button className="form-button" onClick={() => window.location.reload()}>Rent Equipment</button>
+            <button className="form-button" onClick={handleRentClick}>Rent Equipment</button>
             <button className="reload-button" onClick={() => window.location.reload()}>Reload</button>
         </div>
         </div>
