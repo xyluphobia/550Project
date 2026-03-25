@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import {EmailJSConfigEquipment} from '../EmailJS/emailJSConfiguration';
 import './equipmentBooking.css';
 
 const EquipmentBooking = () => {

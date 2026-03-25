@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline'; // Add this
 import interactionPlugin from '@fullcalendar/interaction';
+import {EmailJSConfigBooking} from '../EmailJS/emailJSConfiguration';
 import axios from 'axios';
 import './roomBookingCalendar.css';
 
@@ -27,7 +28,6 @@ const RoomBookingCalendar = () => {
     });
 
     const API_BASE_URL = '/api';
-    // const BUILDINGS_API_URL = `${API_BASE_URL}/buildings`;
     const ROOMS_API_URL = `${API_BASE_URL}/rooms`;
     const BOOKINGS_API_URL = `${API_BASE_URL}/bookings`;
 
@@ -229,16 +229,13 @@ const RoomBookingCalendar = () => {
                 userName: '',
                 userEmail: '',
             });
+            EmailJSConfigBooking({ events: [...events, newBooking], rooms, buildings, loading: false, error: null });
             alert('Booking created successfully!');
         } catch (error) {
             console.error('Error creating booking:', error);
             alert('Failed to create booking.');
         }
     };
-
-    // Add check for login status before allowing booking submission
-    // Add Check for past date selection before allowing booking submission
-    // Remove option to select past dates and times in the calendar
 
     // Handle date change
     const handleDatesSet = (dateInfo) => {
@@ -320,7 +317,6 @@ const RoomBookingCalendar = () => {
             end: newEndTime
         });
     };
-
 
     return (
         <div className="room-booking-calendar">
