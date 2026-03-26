@@ -533,24 +533,42 @@ const RoomBookingCalendar = () => {
         );
     };
 
-    const renderLegend = () => (
-        <div className='legend'>
-            <h3>Legend</h3>
-            <div className='legend-items'>
-                {[
-                    { color: CALENDAR_CONFIG.COLORS.AVAILABLE, label: 'Available' },
-                    { color: CALENDAR_CONFIG.COLORS.YOUR_BOOKING, label: 'Your Booking' },
-                    { color: CALENDAR_CONFIG.COLORS.BOOKED, label: 'Booked' },
-                    { color: CALENDAR_CONFIG.COLORS.UNAVAILABLE, label: 'Unavailable' },
-                ].map(item => (
-                    <div key={item.label} className='legend-item'>
-                        <div className='legend-block' style={{ backgroundColor: item.color }}></div>
-                        <span className='legend-color'>{item.label}</span>
+    const renderLegend = () => {
+        const hasRealData = rooms.length > 0 && events.length > 0 && !loading;
+    
+        console.log('Legend render check:', {
+            loading,
+            eventsLength: events.length,
+            roomsLength: rooms.length,
+            hasRealData
+        });
+        
+        if (!hasRealData) {
+            return null;
+        }
+
+        if (loading || events.length === 0 || rooms.length === 0) return null;
+        return (
+            <div className="legend-container">
+                <div className='legend'>
+                    <h3>Legend</h3>
+                    <div className='legend-items'>
+                        {[
+                            { color: CALENDAR_CONFIG.COLORS.AVAILABLE, label: 'Available' },
+                            { color: CALENDAR_CONFIG.COLORS.YOUR_BOOKING, label: 'Your Booking' },
+                            { color: CALENDAR_CONFIG.COLORS.BOOKED, label: 'Booked' },
+                            { color: CALENDAR_CONFIG.COLORS.UNAVAILABLE, label: 'Unavailable' },
+                        ].map(item => (
+                            <div key={item.label} className='legend-item'>
+                                <div className='legend-block' style={{ backgroundColor: item.color }}></div>
+                                <span className='legend-color'>{item.label}</span>
+                            </div>
+                        ))}
                     </div>
-                ))}
+                </div>
             </div>
-        </div>
-    );
+            );
+    };
 
     if (loading) return <div className="loading">Loading calendar...</div>;
 
