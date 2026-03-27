@@ -3,10 +3,45 @@ import { query } from '../db.js';
 
 const router = express.Router();
 
-// GET all rooms
+// GET all rooms (with optional filters via query params)
+// Supported filters: building_name, min_capacity, has_whiteboard, has_monitor, is_active, available_start, available_end
 router.get('/', async (req, res) => {
   try {
-    const rooms = await query('SELECT * FROM rooms');
+    const { building_name, min_capacity, has_whiteboard, has_monitor, is_active, available_start, available_end } = req.query;
+
+    let sql = 'SELECT * FROM rooms WHERE 1=1';
+    const params = [];
+
+    if (building_name) {
+      sql += ' AND building_name = ?';
+      params.push(building_name);
+    }
+    if (min_capacity) {
+      sql += ' AND room_capacity >= ?';
+      params.push(parseInt(min_capacity, 10));
+    }
+    if (has_whiteboard !== undefined) {
+      sql += ' AND has_whiteboard = ?';
+      params.push(parseInt(has_whiteboard, 10));
+    }
+    if (has_monitor !== undefined) {
+      sql += ' AND has_monitor = ?';
+      params.push(parseInt(has_monitor, 10));
+    }
+    if (is_active !== undefined) {
+      sql += ' AND is_active = ?';
+      params.push(parseInt(is_active, 10));
+    }
+    if (available_start && available_end) {
+      sql += ` AND room_id NOT IN (
+        SELECT br.room_id FROM booking_rooms br
+        JOIN bookings b ON br.booking_id = b.booking_id
+        WHERE b.start_time < ? AND b.end_time > ?
+      )`;
+      params.push(available_end, available_start);
+    }
+
+    const rooms = await query(sql, params);
     res.json(rooms);
     console.log('Rooms fetched:', rooms);
   } catch (err) {
