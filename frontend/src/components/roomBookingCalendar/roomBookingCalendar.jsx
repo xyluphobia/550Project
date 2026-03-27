@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -46,6 +46,22 @@ const RoomBookingCalendar = () => {
     const [selectedBuilding, setSelectedBuilding] = useState('');
     const [selectedRoom, setSelectedRoom] = useState('');
     const [filteredRooms, setFilteredRooms] = useState([]);
+    const [filters, setFilters] = useState({
+        min_capacity: '',
+        has_whiteboard: '',
+        has_monitor: '',
+        available_start: '',
+        available_end: '',
+    });
+    const [appliedFilters, setAppliedFilters] = useState({
+        min_capacity: '',
+        has_whiteboard: '',
+        has_monitor: '',
+        available_start: '',
+        available_end: '',
+    });
+    const isInitialLoad = useRef(true);
+    const [showFilters, setShowFilters] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [showBookingForm, setShowBookingForm] = useState(false);
     const [calendarSlots, setCalendarSlots] = useState([]);
@@ -125,17 +141,33 @@ const RoomBookingCalendar = () => {
         return slots;
     }, [filteredRooms, selectedDate, events]);
 
+    // Build query params from applied filters
+    const buildRoomParams = useCallback(() => {
+        const params = {};
+        if (appliedFilters.min_capacity) params.min_capacity = appliedFilters.min_capacity;
+        if (appliedFilters.has_whiteboard !== '') params.has_whiteboard = appliedFilters.has_whiteboard;
+        if (appliedFilters.has_monitor !== '') params.has_monitor = appliedFilters.has_monitor;
+        if (appliedFilters.available_start) params.available_start = appliedFilters.available_start;
+        if (appliedFilters.available_end) params.available_end = appliedFilters.available_end;
+        return params;
+    }, [appliedFilters]);
+
     // Fetch data
     useEffect(() => {
         const fetchData = async () => {
             try {
-                setLoading(true);
+                if (isInitialLoad.current) {
+                    setLoading(true);
+                }
                 setError(null);
-                
-                const [roomsResponse, bookingsResponse] = await Promise.all([
-                    axios.get(ROOMS_API_URL),
-                    axios.get(BOOKINGS_API_URL)
-                ]);
+
+                const requests = [axios.get(ROOMS_API_URL, { params: buildRoomParams() })];
+                if (isInitialLoad.current) {
+                    requests.push(axios.get(BOOKINGS_API_URL));
+                }
+
+                const responses = await Promise.all(requests);
+                const roomsResponse = responses[0];
 
                 // Transform API rooms to component format
                 const apiRooms = roomsResponse.data;
@@ -161,16 +193,19 @@ const RoomBookingCalendar = () => {
                 setBuildings(transformedBuildings);
                 setRooms(transformedRooms);
                 setFilteredRooms(transformedRooms);
-                
-                setEvents(bookingsResponse.data.map(booking => ({
-                    ...booking,
-                    resourceId: booking.room_id,
-                    start: booking.start_time,
-                    end: booking.end_time,
-                    title: booking.notes || 'Booked',
-                    color: CALENDAR_CONFIG.COLORS.BOOKED
-                })));
-                
+
+                if (isInitialLoad.current && responses[1]) {
+                    setEvents(responses[1].data.map(booking => ({
+                        ...booking,
+                        resourceId: booking.room_id,
+                        start: booking.start_time,
+                        end: booking.end_time,
+                        title: booking.notes || 'Booked',
+                        color: CALENDAR_CONFIG.COLORS.BOOKED
+                    })));
+                    isInitialLoad.current = false;
+                }
+
             } catch (err) {
                 console.error('Error fetching data:', err);
                 setError('Failed to load data from server. Using fallback data.');
@@ -182,7 +217,7 @@ const RoomBookingCalendar = () => {
         };
 
         fetchData();
-    }, []);
+    }, [buildRoomParams]);
 
     // Filter rooms by building
     useEffect(() => {
@@ -420,6 +455,107 @@ const RoomBookingCalendar = () => {
         </div>
     );
 
+    const handleFilterChange = (key, value) => {
+        setFilters(prev => ({ ...prev, [key]: value }));
+    };
+
+    const handleApplyFilters = () => {
+        setAppliedFilters({ ...filters });
+    };
+
+    const clearFilters = () => {
+        const empty = {
+            min_capacity: '',
+            has_whiteboard: '',
+            has_monitor: '',
+            available_start: '',
+            available_end: '',
+        };
+        setFilters(empty);
+        setAppliedFilters(empty);
+    };
+
+    const hasActiveFilters = Object.values(appliedFilters).some(v => v !== '');
+    const hasPendingFilters = JSON.stringify(filters) !== JSON.stringify(appliedFilters);
+
+    const renderFilters = () => (
+        <div className="room-filters">
+            <button
+                className="filter-toggle-btn"
+                onClick={() => setShowFilters(!showFilters)}
+            >
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+                {hasActiveFilters && <span className="filter-badge">Active</span>}
+            </button>
+            {showFilters && (
+                <div className="filter-panel">
+                    <div className="filter-row">
+                        <label>
+                            Min Capacity
+                            <input
+                                type="number"
+                                min="1"
+                                placeholder="Any"
+                                value={filters.min_capacity}
+                                onChange={(e) => handleFilterChange('min_capacity', e.target.value)}
+                            />
+                        </label>
+                        <label>
+                            Whiteboard
+                            <select
+                                value={filters.has_whiteboard}
+                                onChange={(e) => handleFilterChange('has_whiteboard', e.target.value)}
+                            >
+                                <option value="">Any</option>
+                                <option value="1">Yes</option>
+                                <option value="0">No</option>
+                            </select>
+                        </label>
+                        <label>
+                            Monitor
+                            <select
+                                value={filters.has_monitor}
+                                onChange={(e) => handleFilterChange('has_monitor', e.target.value)}
+                            >
+                                <option value="">Any</option>
+                                <option value="1">Yes</option>
+                                <option value="0">No</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div className="filter-row">
+                        <label>
+                            Available From
+                            <input
+                                type="datetime-local"
+                                value={filters.available_start}
+                                onChange={(e) => handleFilterChange('available_start', e.target.value)}
+                            />
+                        </label>
+                        <label>
+                            Available Until
+                            <input
+                                type="datetime-local"
+                                value={filters.available_end}
+                                onChange={(e) => handleFilterChange('available_end', e.target.value)}
+                            />
+                        </label>
+                    </div>
+                    <div className="filter-actions">
+                        <button className="apply-filters-btn" onClick={handleApplyFilters}>
+                            {hasPendingFilters ? 'Apply Filters *' : 'Apply Filters'}
+                        </button>
+                        {hasActiveFilters && (
+                            <button className="clear-filters-btn" onClick={clearFilters}>
+                                Clear All Filters
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+
     const renderBookingForm = () => {
         if (!showBookingForm || !selectedRoom) return null;
 
@@ -559,7 +695,8 @@ const RoomBookingCalendar = () => {
             {error && <div className="error-message">{error}</div>}
             
             {renderBuildingSelector()}
-            
+            {renderFilters()}
+
             <div className='calendar-wrapper'>
                 <FullCalendar
                     plugins={[resourceTimelinePlugin, interactionPlugin]}
