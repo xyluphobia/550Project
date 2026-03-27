@@ -15,6 +15,7 @@ export const pool = mysql.createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   waitForConnections: true,
+  timezone: 'Z',
 });
 
 export async function query(sql, params) {
