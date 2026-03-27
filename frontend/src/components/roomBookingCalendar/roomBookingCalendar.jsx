@@ -10,6 +10,7 @@ import './roomBookingCalendar.css';
 const API_BASE_URL = '/api';
 const ROOMS_API_URL = `${API_BASE_URL}/rooms`;
 const BOOKINGS_API_URL = `${API_BASE_URL}/bookings`;
+const BLOCKS_API_URL = `${API_BASE_URL}/blocks`;
 
 const CALENDAR_CONFIG = {
     START_HOUR: 6,
@@ -20,6 +21,7 @@ const CALENDAR_CONFIG = {
         BOOKED: '#D4FFFD',
         YOUR_BOOKING: '#c26efe',
         UNAVAILABLE: '#d3d3d3',
+        BLOCKED: '#CC2200',
         DEFAULT_EVENT: '#3788d8'
     }
 };
@@ -39,8 +41,10 @@ const FALLBACK_ROOMS = [
     { id: 'makerstudio-2', name: 'Electronics Lab', buildingId: 'bldg3', buildingName: 'Makerstudio', capacity: 6, floor: '1' },
 ];
 
-const RoomBookingCalendar = () => {
-    // State
+const RoomBookingCalendar = ({ adminSession }) => {
+    const isAdminMode = !!adminSession;
+
+    // --- Booking state ---
     const [events, setEvents] = useState([]);
     const [buildings, setBuildings] = useState(FALLBACK_BUILDINGS);
     const [rooms, setRooms] = useState([]);
@@ -77,6 +81,20 @@ const RoomBookingCalendar = () => {
         uncw_id: '',
         userEmail: '',
     });
+
+    // --- Block state (admin only) ---
+    const [blocks, setBlocks] = useState([]);
+    const [isBlockMode, setIsBlockMode] = useState(false);
+    const [blockReason, setBlockReason] = useState('');
+
+    // --- Block edit dialog state (admin only) ---
+    const [showBlockEditDialog, setShowBlockEditDialog] = useState(false);
+    const [selectedBlockForEdit, setSelectedBlockForEdit] = useState(null);
+    const [blockEditDurationMinutes, setBlockEditDurationMinutes] = useState(0);
+
+    // --- Cancel booking dialog state (admin only) ---
+    const [showCancelBookingDialog, setShowCancelBookingDialog] = useState(false);
+    const [selectedBookingForCancel, setSelectedBookingForCancel] = useState(null);
 
     // Computed values
     const renderCalHeight = rooms.length > 0 ? 'auto' : rooms.length * 150;
@@ -120,10 +138,27 @@ const RoomBookingCalendar = () => {
                     endTime.setMinutes(endTime.getMinutes() + CALENDAR_CONFIG.SLOT_DURATION);
 
                     const isBooked = events.some(booking =>
-                        booking.resourceId === room.id &&
+                        booking.resourceId?.toString() === room.id &&
+                        booking.extendedProps?.status !== 'cancelled' &&
                         new Date(booking.start) < endTime &&
                         new Date(booking.end) > startTime
                     );
+
+                    const isBlocked = blocks.some(block =>
+                        block.room_id.toString() === room.id &&
+                        new Date(block.start_time) < endTime &&
+                        new Date(block.end_time) > startTime
+                    );
+
+                    let color = CALENDAR_CONFIG.COLORS.AVAILABLE;
+                    let classNames = ['available-slot'];
+                    if (isBlocked) {
+                        color = CALENDAR_CONFIG.COLORS.BLOCKED;
+                        classNames = ['blocked-slot'];
+                    } else if (isBooked) {
+                        color = CALENDAR_CONFIG.COLORS.BOOKED;
+                        classNames = ['booked-slot'];
+                    }
 
                     slots.push({
                         id: `slot-${room.id}-${hour}-${minute}-${Date.now()}-${Math.random()}`,
@@ -131,16 +166,16 @@ const RoomBookingCalendar = () => {
                         start: startTime,
                         end: endTime,
                         display: 'background',
-                        color: isBooked ? CALENDAR_CONFIG.COLORS.BOOKED : CALENDAR_CONFIG.COLORS.AVAILABLE,
-                        classNames: isBooked ? ['booked-slot'] : ['available-slot'],
-                        extendedProps: { isBooked, isAvailable: !isBooked }
+                        color,
+                        classNames,
+                        extendedProps: { isBooked, isBlocked, isAvailable: !isBooked && !isBlocked }
                     });
                 }
             }
         });
 
         return slots;
-    }, [filteredRooms, selectedDate, events]);
+    }, [filteredRooms, selectedDate, events, blocks]);
 
     // Build query params from applied filters
     const buildRoomParams = useCallback(() => {
@@ -165,6 +200,7 @@ const RoomBookingCalendar = () => {
                 const requests = [axios.get(ROOMS_API_URL, { params: buildRoomParams() })];
                 if (isInitialLoad.current) {
                     requests.push(axios.get(BOOKINGS_API_URL));
+                    requests.push(axios.get(BLOCKS_API_URL));
                 }
 
                 const responses = await Promise.all(requests);
@@ -195,15 +231,28 @@ const RoomBookingCalendar = () => {
                 setRooms(transformedRooms);
                 setFilteredRooms(transformedRooms);
 
-                if (isInitialLoad.current && responses[1]) {
-                    setEvents(responses[1].data.map(booking => ({
-                        ...booking,
-                        resourceId: booking.room_id,
-                        start: booking.start_time,
-                        end: booking.end_time,
-                        title: booking.notes || 'Booked',
-                        color: CALENDAR_CONFIG.COLORS.BOOKED
-                    })));
+                if (isInitialLoad.current) {
+                    if (responses[1]) {
+                        setEvents(responses[1].data.map(booking => ({
+                            id: `booking-${booking.booking_id}`,
+                            resourceId: booking.room_id?.toString(),
+                            start: booking.start_time,
+                            end: booking.end_time,
+                            title: booking.notes || 'Booked',
+                            color: CALENDAR_CONFIG.COLORS.BOOKED,
+                            extendedProps: {
+                                isBooking: true,
+                                booking_id: booking.booking_id,
+                                uncw_id: booking.uncw_id,
+                                first_name: booking.first_name,
+                                last_name: booking.last_name,
+                                status: booking.status || 'active'
+                            }
+                        })));
+                    }
+                    if (responses[2]) {
+                        setBlocks(responses[2].data);
+                    }
                     isInitialLoad.current = false;
                 }
 
@@ -223,7 +272,7 @@ const RoomBookingCalendar = () => {
     // Filter rooms by building
     useEffect(() => {
         setFilteredRooms(
-            selectedBuilding 
+            selectedBuilding
                 ? rooms.filter(room => room.buildingId === selectedBuilding)
                 : rooms
         );
@@ -252,6 +301,21 @@ const RoomBookingCalendar = () => {
         });
     }, [filteredRooms, getBuildingById]);
 
+    // Block events to display on the calendar as foreground events
+    const blockEvents = useMemo(() => {
+        return blocks.map(block => ({
+            id: `block-${block.block_id}`,
+            resourceId: block.room_id.toString(),
+            start: block.start_time,
+            end: block.end_time,
+            title: block.reason ? `BLOCKED: ${block.reason}` : 'BLOCKED',
+            color: CALENDAR_CONFIG.COLORS.BLOCKED,
+            classNames: ['block-event'],
+            editable: false,
+            extendedProps: { isBlock: true }
+        }));
+    }, [blocks]);
+
     // Event handlers
     const handleDateSelect = (selectInfo) => {
         const resourceId = selectInfo.resource?.id;
@@ -269,6 +333,8 @@ const RoomBookingCalendar = () => {
             room: resourceId,
         });
         setTimeSlotsAdded(0);
+        setIsBlockMode(false);
+        setBlockReason('');
         setShowBookingForm(true);
     };
 
@@ -283,7 +349,6 @@ const RoomBookingCalendar = () => {
         const roomInfo = getRoomById(selectedRoom);
         const buildingInfo = getBuildingById(selectedBuilding);
 
-        // Format dates for MySQL (YYYY-MM-DD HH:MM:SS)
         const formatDateTime = (date) => {
             return date.toISOString().slice(0, 19).replace('T', ' ');
         };
@@ -300,14 +365,11 @@ const RoomBookingCalendar = () => {
             };
 
             try {
-                // Try to create the user (will fail if already exists due to unique constraints)
                 await axios.post(`${API_BASE_URL}/users`, userData);
             } catch (userError) {
-                // User might already exist, that's okay
                 console.log('User may already exist:', userError.response?.data?.error);
             }
 
-            // Now create the booking
             const bookingData = {
                 uncw_id: parseInt(bookingDetails.uncw_id),
                 booking_type: 'room',
@@ -320,8 +382,7 @@ const RoomBookingCalendar = () => {
             };
 
             const response = await axios.post(BOOKINGS_API_URL, bookingData);
-            
-            // Add the new booking to events
+
             const newBooking = {
                 id: `booking-${response.data.booking_id}`,
                 resourceId: selectedRoom,
@@ -355,24 +416,183 @@ const RoomBookingCalendar = () => {
         }
     };
 
+    const handleBlockSubmit = async () => {
+        if (!selectedRoom) return;
+
+        const formatDateTime = (date) => date.toISOString().slice(0, 19).replace('T', ' ');
+
+        try {
+            const response = await axios.post(BLOCKS_API_URL, {
+                admin_uncw_id: parseInt(adminSession.uncw_id),
+                room_id: parseInt(selectedRoom),
+                start_time: formatDateTime(selectedSlot.start),
+                end_time: formatDateTime(selectedSlot.end),
+                reason: blockReason || null
+            });
+
+            const newBlock = {
+                block_id: response.data.block_id,
+                room_id: parseInt(selectedRoom),
+                start_time: new Date(response.data.start_time).toISOString(),
+                end_time: new Date(response.data.end_time).toISOString(),
+                reason: blockReason || null
+            };
+
+            if (response.data.merged && response.data.merged_block_ids?.length > 0) {
+                setBlocks(prev => [
+                    ...prev.filter(b => !response.data.merged_block_ids.includes(b.block_id)),
+                    newBlock
+                ]);
+            } else {
+                setBlocks(prev => [...prev, newBlock]);
+            }
+            setShowBookingForm(false);
+            setIsBlockMode(false);
+            setBlockReason('');
+            alert('Room blocked successfully!');
+        } catch (error) {
+            console.error('Error blocking room:', error);
+            alert('Failed to block room: ' + (error.response?.data?.error || error.message));
+        }
+    };
+
     const handleDatesSet = (dateInfo) => {
         setSelectedDate(dateInfo.start);
     };
 
     const handleEventClick = (info) => {
-        if (info.event.extendedProps.isBooked) {
-            alert(`This slot is already booked. Please select another slot.`);
+        if (info.event.extendedProps.isBlock) {
+            if (isAdminMode) {
+                const blockId = parseInt(info.event.id.replace('block-', ''));
+                const block = blocks.find(b => b.block_id === blockId);
+                if (block) {
+                    const durationMs = new Date(block.end_time) - new Date(block.start_time);
+                    const durationMinutes = Math.round(durationMs / 60000);
+                    setSelectedBlockForEdit(block);
+                    setBlockEditDurationMinutes(durationMinutes);
+                    setShowBlockEditDialog(true);
+                }
+            } else {
+                alert(`This time slot is blocked by an administrator.\n${info.event.title}`);
+            }
+            return false;
+        }
+
+        if (info.event.extendedProps.isBooking) {
+            if (isAdminMode) {
+                const status = info.event.extendedProps.status;
+                if (status !== 'cancelled') {
+                    setSelectedBookingForCancel({
+                        booking_id: info.event.extendedProps.booking_id,
+                        title: info.event.title,
+                        start: info.event.start,
+                        end: info.event.end,
+                        uncw_id: info.event.extendedProps.uncw_id,
+                        first_name: info.event.extendedProps.first_name,
+                        last_name: info.event.extendedProps.last_name,
+                    });
+                    setShowCancelBookingDialog(true);
+                }
+            }
             return false;
         }
     };
 
+    // Escape key closes admin dialogs
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                setShowBlockEditDialog(false);
+                setShowCancelBookingDialog(false);
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    const removeBlock = async (blockId) => {
+        try {
+            await axios.delete(`${BLOCKS_API_URL}/${blockId}`, {
+                data: { admin_uncw_id: parseInt(adminSession.uncw_id) }
+            });
+            setBlocks(prev => prev.filter(b => b.block_id !== blockId));
+            setShowBlockEditDialog(false);
+            setSelectedBlockForEdit(null);
+        } catch (error) {
+            console.error('Error removing block:', error);
+            alert('Failed to remove block: ' + (error.response?.data?.error || error.message));
+        }
+    };
+
+    const handleBlockEditSave = async () => {
+        if (!selectedBlockForEdit) return;
+
+        if (blockEditDurationMinutes <= 0) {
+            await removeBlock(selectedBlockForEdit.block_id);
+            return;
+        }
+
+        const formatDateTime = (date) => date.toISOString().slice(0, 19).replace('T', ' ');
+        const newEndTime = new Date(selectedBlockForEdit.start_time);
+        newEndTime.setMinutes(newEndTime.getMinutes() + blockEditDurationMinutes);
+
+        try {
+            await axios.put(`${BLOCKS_API_URL}/${selectedBlockForEdit.block_id}`, {
+                admin_uncw_id: parseInt(adminSession.uncw_id),
+                end_time: formatDateTime(newEndTime)
+            });
+            setBlocks(prev => prev.map(b =>
+                b.block_id === selectedBlockForEdit.block_id
+                    ? { ...b, end_time: newEndTime.toISOString() }
+                    : b
+            ));
+            setShowBlockEditDialog(false);
+            setSelectedBlockForEdit(null);
+        } catch (error) {
+            console.error('Error updating block:', error);
+            alert('Failed to update block: ' + (error.response?.data?.error || error.message));
+        }
+    };
+
+    const handleCancelBookingFromCalendar = async () => {
+        if (!selectedBookingForCancel) return;
+        try {
+            await axios.patch(`${BOOKINGS_API_URL}/${selectedBookingForCancel.booking_id}/cancel`, {
+                admin_uncw_id: parseInt(adminSession.uncw_id)
+            });
+            setEvents(prev => prev.map(e =>
+                e.extendedProps?.booking_id === selectedBookingForCancel.booking_id
+                    ? { ...e, color: CALENDAR_CONFIG.COLORS.UNAVAILABLE, extendedProps: { ...e.extendedProps, status: 'cancelled' } }
+                    : e
+            ));
+            setShowCancelBookingDialog(false);
+            setSelectedBookingForCancel(null);
+        } catch (error) {
+            console.error('Error cancelling booking:', error);
+            alert('Failed to cancel booking: ' + (error.response?.data?.error || error.message));
+        }
+    };
+
     const handleSelectAllow = (selectInfo) => {
+        if (selectInfo.end <= new Date()) return false;
+
         const hasOverlap = events.some(booking =>
-            booking.resourceId === selectInfo.resource?.id &&
+            booking.resourceId?.toString() === selectInfo.resource?.id &&
+            booking.extendedProps?.status !== 'cancelled' &&
             new Date(booking.start) < selectInfo.end &&
             new Date(booking.end) > selectInfo.start
         );
-        return !hasOverlap;
+        if (hasOverlap) return false;
+
+        // Admins can select over blocked slots (to block on top of existing blocks)
+        if (isAdminMode) return true;
+
+        const isBlocked = blocks.some(block =>
+            block.room_id.toString() === selectInfo.resource?.id &&
+            new Date(block.start_time) < selectInfo.end &&
+            new Date(block.end_time) > selectInfo.start
+        );
+        return !isBlocked;
     };
 
     const handleResourceLabelMount = (info) => {
@@ -388,20 +608,18 @@ const RoomBookingCalendar = () => {
 
         const slotsToAdd = Math.abs(increment);
         const direction = increment > 0 ? 1 : -1;
-        
+
         if (direction < 0 && timeSlotsAdded <= 0) return;
 
         const newEndTime = new Date(selectedSlot.end);
         newEndTime.setMinutes(newEndTime.getMinutes() + (30 * increment));
 
-        // Check time bounds
         const totalHours = newEndTime.getHours() + (newEndTime.getMinutes() / 60);
         if (totalHours > CALENDAR_CONFIG.END_HOUR) {
             alert('Cannot extend beyond 2:00 AM');
             return;
         }
 
-        // Check for conflicts when adding time
         if (direction > 0) {
             for (let i = 1; i <= slotsToAdd; i++) {
                 const segmentStart = new Date(selectedSlot.end);
@@ -409,8 +627,8 @@ const RoomBookingCalendar = () => {
                 const segmentEnd = new Date(selectedSlot.end);
                 segmentEnd.setMinutes(segmentEnd.getMinutes() + (i * 30));
 
-                const hasConflict = events.some(booking => 
-                    booking.resourceId === selectedSlot.room &&
+                const hasConflict = events.some(booking =>
+                    booking.resourceId?.toString() === selectedSlot.room &&
                     new Date(booking.start) < segmentEnd &&
                     new Date(booking.end) > segmentStart
                 );
@@ -567,11 +785,30 @@ const RoomBookingCalendar = () => {
         return (
             <div className="booking-form-overlay">
                 <div className="booking-form">
-                    <h2>Book Room</h2>
-                    
+                    <h2>{isBlockMode ? 'Block Room' : 'Book Room'}</h2>
+
+                    {isAdminMode && (
+                        <div className="form-mode-toggle">
+                            <button
+                                type="button"
+                                className={`mode-btn ${!isBlockMode ? 'mode-btn-active' : ''}`}
+                                onClick={() => setIsBlockMode(false)}
+                            >
+                                Book Room
+                            </button>
+                            <button
+                                type="button"
+                                className={`mode-btn mode-btn-block ${isBlockMode ? 'mode-btn-block-active' : ''}`}
+                                onClick={() => setIsBlockMode(true)}
+                            >
+                                Block Reservations
+                            </button>
+                        </div>
+                    )}
+
                     <div className="booking-location">
                         <p>
-                            <strong>Location:</strong> 
+                            <strong>Location:</strong>
                             <span className="location-text">
                                 {roomInfo?.name} • {buildingInfo?.name}
                             </span>
@@ -585,8 +822,8 @@ const RoomBookingCalendar = () => {
                             <strong>Time:</strong> {formatTime(selectedSlot?.start)} - {formatTime(selectedSlot?.end)}
                         </p>
                         <div className="time-controls" style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '5px' }}>
-                            <button 
-                                type="button" 
+                            <button
+                                type="button"
                                 onClick={() => adjustTime(-1)}
                                 disabled={timeSlotsAdded <= 0}
                                 className="time-control-btn"
@@ -602,8 +839,8 @@ const RoomBookingCalendar = () => {
                             <span style={{ fontWeight: 'bold' }}>
                                 Duration: {((timeSlotsAdded + 1) * 30)} minutes
                             </span>
-                            <button 
-                                type="button" 
+                            <button
+                                type="button"
                                 onClick={() => adjustTime(1)}
                                 className="time-control-btn"
                                 style={{
@@ -612,57 +849,209 @@ const RoomBookingCalendar = () => {
                                     border: 'none',
                                     borderRadius: '4px',
                                     cursor: 'pointer'
-                                }}>+ 30 min</button>
+                                }}
+                            >+ 30 min</button>
                         </div>
                         <p><strong>Date:</strong> {formatDate(selectedSlot?.start)}</p>
                     </div>
 
-                    <div className='booking-form-fields'>
-                        <input 
-                            type="text" 
-                            placeholder='Meeting Title *'
-                            value={bookingDetails.title}
-                            onChange={(e) => setBookingDetails({...bookingDetails, title: e.target.value})}
-                            required
-                        />
-                        <input 
-                            type="text" 
-                            placeholder='Your Name *'
-                            value={bookingDetails.userName}
-                            onChange={(e) => setBookingDetails({...bookingDetails, userName: e.target.value})}
-                            required
-                        />
-                        <input 
-                            type="number" 
-                            placeholder='UNCW ID *'
-                            value={bookingDetails.uncw_id}
-                            onChange={(e) => setBookingDetails({...bookingDetails, uncw_id: e.target.value})}
-                            required
-                        />
-                        <input 
-                            type="email" 
-                            placeholder='Your Email *'
-                            value={bookingDetails.userEmail}
-                            onChange={(e) => setBookingDetails({...bookingDetails, userEmail: e.target.value})}
-                            required
-                        />
-                        <textarea 
-                            placeholder='Meeting Description (Optional)'
-                            value={bookingDetails.description}
-                            onChange={(e) => setBookingDetails({...bookingDetails, description: e.target.value})}
-                            rows="3"
-                        />
+                    {isBlockMode ? (
+                        <div className="booking-form-fields">
+                            <p className="block-info-text">
+                                Blocking this room will prevent all reservations during the selected time window.
+                                Overlapping blocks will be automatically merged.
+                            </p>
+                            <textarea
+                                placeholder="Reason for blocking (optional)"
+                                value={blockReason}
+                                onChange={(e) => setBlockReason(e.target.value)}
+                                rows="3"
+                                maxLength={500}
+                            />
+                            <div className="form-buttons">
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowBookingForm(false); setIsBlockMode(false); setBlockReason(''); }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    className="block-submit-btn"
+                                    onClick={handleBlockSubmit}
+                                >
+                                    Block Reservations
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className='booking-form-fields'>
+                            <input
+                                type="text"
+                                placeholder='Meeting Title *'
+                                value={bookingDetails.title}
+                                onChange={(e) => setBookingDetails({ ...bookingDetails, title: e.target.value })}
+                                required
+                            />
+                            <input
+                                type="text"
+                                placeholder='Your Name *'
+                                value={bookingDetails.userName}
+                                onChange={(e) => setBookingDetails({ ...bookingDetails, userName: e.target.value })}
+                                required
+                            />
+                            <input
+                                type="number"
+                                placeholder='UNCW ID *'
+                                value={bookingDetails.uncw_id}
+                                onChange={(e) => setBookingDetails({ ...bookingDetails, uncw_id: e.target.value })}
+                                required
+                            />
+                            <input
+                                type="email"
+                                placeholder='Your Email *'
+                                value={bookingDetails.userEmail}
+                                onChange={(e) => setBookingDetails({ ...bookingDetails, userEmail: e.target.value })}
+                                required
+                            />
+                            <textarea
+                                placeholder='Meeting Description (Optional)'
+                                value={bookingDetails.description}
+                                onChange={(e) => setBookingDetails({ ...bookingDetails, description: e.target.value })}
+                                rows="3"
+                            />
 
-                        <div className='form-buttons'>
-                            <button type="button" onClick={() => setShowBookingForm(false)}>Cancel</button>
+                            <div className='form-buttons'>
+                                <button type="button" onClick={() => setShowBookingForm(false)}>Cancel</button>
+                                <button
+                                    type="submit"
+                                    onClick={handleBookingSubmit}
+                                    disabled={!bookingDetails.title || !bookingDetails.userName || !bookingDetails.uncw_id || !bookingDetails.userEmail}
+                                >
+                                    Confirm Booking
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const formatDuration = (minutes) => {
+        const h = Math.floor(minutes / 60);
+        const m = minutes % 60;
+        if (h === 0) return `${m}m`;
+        if (m === 0) return `${h}h`;
+        return `${h}h ${m}m`;
+    };
+
+    const renderBlockEditDialog = () => {
+        if (!showBlockEditDialog || !selectedBlockForEdit) return null;
+
+        return (
+            <div
+                className="booking-form-overlay"
+                onClick={(e) => { if (e.target === e.currentTarget) setShowBlockEditDialog(false); }}
+            >
+                <div className="booking-form block-edit-dialog">
+                    <button
+                        className="block-edit-close-btn"
+                        onClick={() => setShowBlockEditDialog(false)}
+                        aria-label="Close"
+                    >
+                        ×
+                    </button>
+                    <h2>Edit Block</h2>
+
+                    <div className="block-edit-duration-section">
+                        <h3>Increase/Decrease Duration</h3>
+                        <div className="block-edit-duration-controls">
                             <button
-                                type="submit"
-                                onClick={handleBookingSubmit}
-                                disabled={!bookingDetails.title || !bookingDetails.userName || !bookingDetails.uncw_id || !bookingDetails.userEmail}
+                                type="button"
+                                className="block-edit-duration-btn"
+                                onClick={() => setBlockEditDurationMinutes(m => Math.max(0, m - 30))}
                             >
-                                Confirm Booking
+                                -
+                            </button>
+                            <span className="block-edit-duration-value">{formatDuration(blockEditDurationMinutes)}</span>
+                            <button
+                                type="button"
+                                className="block-edit-duration-btn"
+                                onClick={() => setBlockEditDurationMinutes(m => m + 30)}
+                            >
+                                +
                             </button>
                         </div>
+                        {blockEditDurationMinutes <= 0 && (
+                            <p className="block-edit-remove-warning">Duration is 0 — block will be removed on save.</p>
+                        )}
+                    </div>
+
+                    <div className="form-buttons block-edit-actions">
+                        <button
+                            type="button"
+                            className="block-edit-save-btn"
+                            onClick={handleBlockEditSave}
+                        >
+                            Save
+                        </button>
+                        <button
+                            type="button"
+                            className="block-submit-btn block-edit-remove-btn"
+                            onClick={() => removeBlock(selectedBlockForEdit.block_id)}
+                        >
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderCancelBookingDialog = () => {
+        if (!showCancelBookingDialog || !selectedBookingForCancel) return null;
+
+        const { booking_id, title, start, end, first_name, last_name, uncw_id } = selectedBookingForCancel;
+        const name = (first_name || last_name)
+            ? `${first_name || ''} ${last_name || ''}`.trim()
+            : `UNCW ID ${uncw_id}`;
+
+        return (
+            <div
+                className="booking-form-overlay"
+                onClick={(e) => { if (e.target === e.currentTarget) setShowCancelBookingDialog(false); }}
+            >
+                <div className="booking-form block-edit-dialog">
+                    <button
+                        className="block-edit-close-btn"
+                        onClick={() => setShowCancelBookingDialog(false)}
+                        aria-label="Close"
+                    >
+                        ×
+                    </button>
+                    <h2>Cancel Booking</h2>
+                    <div className="booking-location">
+                        <p><strong>Booking #{booking_id}</strong></p>
+                        <p><strong>User:</strong> {name}</p>
+                        <p><strong>Notes:</strong> {title}</p>
+                        <p><strong>Time:</strong> {formatTime(start)} – {formatTime(end)}</p>
+                        <p><strong>Date:</strong> {formatDate(start)}</p>
+                    </div>
+                    <p className="block-info-text" style={{ borderColor: '#b66000', background: '#fff8ee' }}>
+                        This will release the room for the reserved time slot.
+                    </p>
+                    <div className="form-buttons" style={{ marginTop: '16px' }}>
+                        <button type="button" onClick={() => setShowCancelBookingDialog(false)}>
+                            Keep Booking
+                        </button>
+                        <button
+                            type="button"
+                            className="block-submit-btn"
+                            onClick={handleCancelBookingFromCalendar}
+                        >
+                            Cancel Booking
+                        </button>
                     </div>
                 </div>
             </div>
@@ -711,9 +1100,9 @@ const RoomBookingCalendar = () => {
     return (
         <div className="room-booking-calendar">
             <h2>Room Booking Calendar</h2>
-            
+
             {error && <div className="error-message">{error}</div>}
-            
+
             {renderBuildingSelector()}
             {renderFilters()}
 
@@ -729,7 +1118,21 @@ const RoomBookingCalendar = () => {
                     }}
                     resources={resources}
                     resourceAreaHeaderContent="Study Rooms"
-                    events={calendarSlots}
+                    events={[
+                        ...calendarSlots,
+                        ...blockEvents,
+                        ...(isAdminMode
+                            ? events
+                                .filter(e => e.extendedProps?.status !== 'cancelled')
+                                .map(e => ({
+                                    ...e,
+                                    title: '',
+                                    backgroundColor: 'transparent',
+                                    borderColor: 'transparent',
+                                    classNames: ['booking-click-target']
+                                }))
+                            : [])
+                    ]}
                     editable={false}
                     eventDurationEditable={false}
                     eventStartEditable={false}
@@ -757,6 +1160,8 @@ const RoomBookingCalendar = () => {
             </div>
 
             {renderBookingForm()}
+            {renderBlockEditDialog()}
+            {renderCancelBookingDialog()}
             {renderLegend()}
         </div>
     );

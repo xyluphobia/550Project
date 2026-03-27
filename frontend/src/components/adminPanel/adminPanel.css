@@ -1,0 +1,199 @@
+/* Panel */
+.admin-panel {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.admin-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.admin-panel-header h2 {
+    color: #003580;
+    margin: 0;
+}
+
+.admin-panel-user {
+    font-size: 0.9rem;
+    color: #555;
+    font-style: italic;
+}
+
+.admin-error {
+    background: #ffeaea;
+    color: #c00;
+    padding: 10px 16px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+}
+
+.admin-loading {
+    text-align: center;
+    color: #666;
+    padding: 40px;
+}
+
+/* Table */
+.admin-bookings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.admin-bookings-table th {
+    background: #003580;
+    color: #fff;
+    padding: 10px 12px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.admin-bookings-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e0e0e0;
+    vertical-align: top;
+}
+
+.admin-bookings-table tr:hover td {
+    background: #f5f8ff;
+}
+
+.row-cancelled td {
+    opacity: 0.6;
+    background: #fafafa;
+}
+
+.admin-sub {
+    font-size: 0.78rem;
+    color: #888;
+}
+
+.admin-no-bookings {
+    text-align: center;
+    color: #999;
+    padding: 32px;
+}
+
+/* Status badge */
+.status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-active {
+    background: #d4f5e9;
+    color: #1a7a4a;
+}
+
+.status-cancelled {
+    background: #fde8e8;
+    color: #b00;
+}
+
+.cancel-btn {
+    padding: 6px 14px;
+    background: #c00;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.cancel-btn:hover:not(:disabled) {
+    background: #900;
+}
+
+.cancel-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.cancelled-label {
+    color: #999;
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.ended-label {
+    color: #aaa;
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+/* Confirmation dialog */
+.confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.confirm-dialog {
+    background: #fff;
+    border-radius: 8px;
+    padding: 28px 32px;
+    max-width: 440px;
+    width: 90%;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+}
+
+.confirm-dialog h3 {
+    margin: 0 0 12px;
+    color: #c00;
+}
+
+.confirm-times {
+    color: #555;
+    font-size: 0.9rem;
+    margin: 4px 0 12px;
+}
+
+.confirm-warning {
+    color: #b66000;
+    font-size: 0.88rem;
+    margin-bottom: 20px;
+}
+
+.confirm-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.confirm-no-btn {
+    padding: 8px 18px;
+    background: #eee;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.confirm-no-btn:hover {
+    background: #ddd;
+}
+
+.confirm-yes-btn {
+    padding: 8px 18px;
+    background: #c00;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.confirm-yes-btn:hover {
+    background: #900;
+}
