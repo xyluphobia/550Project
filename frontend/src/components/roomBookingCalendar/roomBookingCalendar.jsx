@@ -41,6 +41,19 @@ const FALLBACK_ROOMS = [
     { id: 'makerstudio-2', name: 'Electronics Lab', buildingId: 'bldg3', buildingName: 'Makerstudio', capacity: 6, floor: '1' },
 ];
 
+const parseSafeDate = (dateStr) => {
+    if (!dateStr) return new Date(NaN);
+    let d = dateStr.toString();
+    if (d.includes(' ')) d = d.replace(' ', 'T');
+    if (!d.endsWith('Z') && !d.includes('+')) d += 'Z';
+    return new Date(d);
+};
+
+const formatDateTime = (date) => {
+    if (!date) return '';
+    return date.toISOString().slice(0, 19).replace('T', ' ');
+};
+
 const RoomBookingCalendar = ({ adminSession }) => {
     const isAdminMode = !!adminSession;
 
@@ -150,8 +163,8 @@ const RoomBookingCalendar = ({ adminSession }) => {
 
                     const isBlocked = blocks.some(block =>
                         block.room_id.toString() === room.id &&
-                        new Date(block.start_time.replace(' ', 'T') + 'Z') < endTime &&
-                        new Date(block.end_time.replace(' ', 'T') + 'Z') > startTime
+                        parseSafeDate(block.start_time) < endTime &&
+                        parseSafeDate(block.end_time) > startTime
                     );
 
                     let color = CALENDAR_CONFIG.COLORS.AVAILABLE;
@@ -168,7 +181,7 @@ const RoomBookingCalendar = ({ adminSession }) => {
                     }
 
                     slots.push({
-                        id: `slot-${room.id}-${hour}-${minute}`,
+                        id: `slot-${room.id}-${hour}-${minute}-${isBooked ? 'booked' : 'free'}-${isBlocked ? 'blocked' : 'unblocked'}`,
                         resourceId: room.id,
                         start: startTime,
                         end: endTime,
@@ -206,8 +219,10 @@ const RoomBookingCalendar = ({ adminSession }) => {
 
                 const requests = [axios.get(ROOMS_API_URL, { params: buildRoomParams() })];
                 if (isInitialLoad.current) {
-                    requests.push(axios.get(BOOKINGS_API_URL));
-                    requests.push(axios.get(BLOCKS_API_URL));
+                    // Add cache-busting timestamp to prevent the browser from serving stale data
+                    const noCacheConfig = { params: { _t: Date.now() }, headers: { 'Cache-Control': 'no-cache' } };
+                    requests.push(axios.get(BOOKINGS_API_URL, noCacheConfig));
+                    requests.push(axios.get(BLOCKS_API_URL, noCacheConfig));
                 }
 
                 const responses = await Promise.all(requests);
@@ -244,8 +259,8 @@ const RoomBookingCalendar = ({ adminSession }) => {
                             .filter(b => b.room_id && b.start_time && b.end_time)
                             .map(booking => {
                                 try {
-                                    const startDate = new Date(booking.start_time.replace(' ', 'T') + 'Z');
-                                    const endDate = new Date(booking.end_time.replace(' ', 'T') + 'Z');
+                                    const startDate = parseSafeDate(booking.start_time);
+                                    const endDate = parseSafeDate(booking.end_time);
                                     
                                     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
                                         console.warn('Invalid date for booking:', booking);
@@ -368,10 +383,6 @@ const RoomBookingCalendar = ({ adminSession }) => {
         const roomInfo = getRoomById(selectedRoom);
         const buildingInfo = getBuildingById(selectedBuilding);
 
-        const formatDateTime = (date) => {
-            return date.toISOString().slice(0, 19).replace('T', ' ');
-        };
-
         try {
             // First, ensure the user exists
             const userData = {
@@ -446,8 +457,6 @@ const RoomBookingCalendar = ({ adminSession }) => {
 
     const handleBlockSubmit = async () => {
         if (!selectedRoom) return;
-
-        const formatDateTime = (date) => date.toISOString().slice(0, 19).replace('T', ' ');
 
         try {
             const response = await axios.post(BLOCKS_API_URL, {
@@ -560,7 +569,6 @@ const RoomBookingCalendar = ({ adminSession }) => {
             return;
         }
 
-        const formatDateTime = (date) => date.toISOString().slice(0, 19).replace('T', ' ');
         const newEndTime = new Date(selectedBlockForEdit.start_time);
         newEndTime.setMinutes(newEndTime.getMinutes() + blockEditDurationMinutes);
 
@@ -617,8 +625,8 @@ const RoomBookingCalendar = ({ adminSession }) => {
 
         const isBlocked = blocks.some(block =>
             block.room_id.toString() === selectInfo.resource?.id &&
-            new Date(block.start_time.replace(' ', 'T') + 'Z') < selectInfo.end &&
-            new Date(block.end_time.replace(' ', 'T') + 'Z') > selectInfo.start
+            parseSafeDate(block.start_time) < selectInfo.end &&
+            parseSafeDate(block.end_time) > selectInfo.start
         );
         return !isBlocked;
     };
