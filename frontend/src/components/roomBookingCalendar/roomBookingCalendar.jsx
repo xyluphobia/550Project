@@ -68,7 +68,6 @@ const RoomBookingCalendar = ({ adminSession }) => {
     const [showFilters, setShowFilters] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [showBookingForm, setShowBookingForm] = useState(false);
-    const [calendarSlots, setCalendarSlots] = useState([]);
     const [timeSlotsAdded, setTimeSlotsAdded] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -120,8 +119,10 @@ const RoomBookingCalendar = ({ adminSession }) => {
         return rooms.filter(room => room.buildingId === buildingId);
     }, [rooms]);
 
-    // Generate time slots
-    const generateTimeSlots = useCallback(() => {
+    // Generate background time slots for the calendar.
+    // This is memoized to prevent re-calculation on every render,
+    // and to ensure it's always in sync with the latest state.
+    const calendarSlots = useMemo(() => {
         if (!filteredRooms.length || !selectedDate) return [];
 
         const slots = [];
@@ -136,17 +137,20 @@ const RoomBookingCalendar = ({ adminSession }) => {
                     const endTime = new Date(startTime);
                     endTime.setMinutes(endTime.getMinutes() + CALENDAR_CONFIG.SLOT_DURATION);
 
-                    const isBooked = events.some(booking =>
+                    const overlappingBooking = events.find(booking =>
                         booking.resourceId?.toString() === room.id &&
                         booking.extendedProps?.status !== 'cancelled' &&
                         new Date(booking.start) < endTime &&
                         new Date(booking.end) > startTime
                     );
 
+                    const isBooked = !!overlappingBooking;
+                    const isYours = isBooked && overlappingBooking.extendedProps?.isYours;
+
                     const isBlocked = blocks.some(block =>
                         block.room_id.toString() === room.id &&
-                        new Date(block.start_time) < endTime &&
-                        new Date(block.end_time) > startTime
+                        new Date(block.start_time.replace(' ', 'T') + 'Z') < endTime &&
+                        new Date(block.end_time.replace(' ', 'T') + 'Z') > startTime
                     );
 
                     let color = CALENDAR_CONFIG.COLORS.AVAILABLE;
@@ -154,20 +158,23 @@ const RoomBookingCalendar = ({ adminSession }) => {
                     if (isBlocked) {
                         color = CALENDAR_CONFIG.COLORS.BLOCKED;
                         classNames = ['blocked-slot'];
+                    } else if (isYours) {
+                        color = CALENDAR_CONFIG.COLORS.YOUR_BOOKING;
+                        classNames = ['booked-slot', 'yours-slot'];
                     } else if (isBooked) {
                         color = CALENDAR_CONFIG.COLORS.BOOKED;
                         classNames = ['booked-slot'];
                     }
 
                     slots.push({
-                        id: `slot-${room.id}-${hour}-${minute}-${Date.now()}-${Math.random()}`,
+                        id: `slot-${room.id}-${hour}-${minute}`,
                         resourceId: room.id,
                         start: startTime,
                         end: endTime,
                         display: 'background',
                         color,
                         classNames,
-                        extendedProps: { isBooked, isBlocked, isAvailable: !isBooked && !isBlocked }
+                        extendedProps: { isBooked, isBlocked, isYours, isAvailable: !isBooked && !isBlocked }
                     });
                 }
             }
@@ -177,7 +184,7 @@ const RoomBookingCalendar = ({ adminSession }) => {
     }, [filteredRooms, selectedDate, events, blocks]);
 
     // Build query params from applied filters
-    const buildRoomParams = useCallback(() => {
+    const buildRoomParams = () => {
         const params = {};
         if (appliedFilters.min_capacity) params.min_capacity = appliedFilters.min_capacity;
         if (appliedFilters.has_whiteboard !== '') params.has_whiteboard = appliedFilters.has_whiteboard;
@@ -185,7 +192,7 @@ const RoomBookingCalendar = ({ adminSession }) => {
         if (appliedFilters.available_start) params.available_start = appliedFilters.available_start;
         if (appliedFilters.available_end) params.available_end = appliedFilters.available_end;
         return params;
-    }, [appliedFilters]);
+    };
 
     // Fetch data
     useEffect(() => {
@@ -232,22 +239,47 @@ const RoomBookingCalendar = ({ adminSession }) => {
 
                 if (isInitialLoad.current) {
                     if (responses[1]) {
-                        setEvents(responses[1].data.map(booking => ({
-                            id: `booking-${booking.booking_id}`,
-                            resourceId: booking.room_id?.toString(),
-                            start: booking.start_time,
-                            end: booking.end_time,
-                            title: booking.notes || 'Booked',
-                            color: CALENDAR_CONFIG.COLORS.BOOKED,
-                            extendedProps: {
-                                isBooking: true,
-                                booking_id: booking.booking_id,
-                                uncw_id: booking.uncw_id,
-                                first_name: booking.first_name,
-                                last_name: booking.last_name,
-                                status: booking.status || 'active'
-                            }
-                        })));
+                        const processedBookings = responses[1].data
+                            .filter(b => b.room_id && b.start_time && b.end_time)
+                            .map(booking => {
+                                try {
+                                    const startDate = new Date(booking.start_time.replace(' ', 'T') + 'Z');
+                                    const endDate = new Date(booking.end_time.replace(' ', 'T') + 'Z');
+                                    
+                                    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                                        console.warn('Invalid date for booking:', booking);
+                                        return null;
+                                    }
+
+                                    const isCurrentUserBooking = adminSession && booking.uncw_id?.toString() === adminSession.uncw_id?.toString();
+                                    
+                                    return {
+                                        id: `booking-${booking.booking_id}`,
+                                        resourceId: booking.room_id?.toString(),
+                                        start: startDate.toISOString(),
+                                        end: endDate.toISOString(),
+                                        title: booking.notes || 'Booked',
+                                        // This color is for the event itself, which is mostly hidden. The
+                                        // main coloring happens via background events in generateTimeSlots.
+                                        color: isCurrentUserBooking ? CALENDAR_CONFIG.COLORS.YOUR_BOOKING : CALENDAR_CONFIG.COLORS.BOOKED,
+                                        extendedProps: {
+                                            isBooking: true,
+                                            isYours: isCurrentUserBooking,
+                                            booking_id: booking.booking_id,
+                                            uncw_id: booking.uncw_id,
+                                            first_name: booking.first_name,
+                                            last_name: booking.last_name,
+                                            status: booking.status || 'active'
+                                        }
+                                    };
+                                } catch (e) {
+                                    console.error('Error processing booking:', booking, e);
+                                    return null;
+                                }
+                            })
+                            .filter(b => b !== null);
+                        console.log('Processed bookings:', processedBookings);
+                        setEvents(processedBookings);
                     }
                     if (responses[2]) {
                         setBlocks(responses[2].data);
@@ -257,6 +289,7 @@ const RoomBookingCalendar = ({ adminSession }) => {
 
             } catch (err) {
                 console.error('Error fetching data:', err);
+                console.error('Error details:', err.response?.data || err.message);
                 setError('Failed to load data from server. Using fallback data.');
                 setRooms(FALLBACK_ROOMS);
                 setFilteredRooms(FALLBACK_ROOMS);
@@ -266,21 +299,7 @@ const RoomBookingCalendar = ({ adminSession }) => {
         };
 
         fetchData();
-    }, [buildRoomParams]);
-
-    // Filter rooms by building
-    useEffect(() => {
-        setFilteredRooms(
-            selectedBuilding
-                ? rooms.filter(room => room.buildingId === selectedBuilding)
-                : rooms
-        );
-    }, [selectedBuilding, rooms]);
-
-    // Update calendar slots
-    useEffect(() => {
-        setCalendarSlots(generateTimeSlots());
-    }, [generateTimeSlots]);
+    }, [appliedFilters]);
 
     // Transform rooms into resources for FullCalendar
     const resources = useMemo(() => {
@@ -384,10 +403,10 @@ const RoomBookingCalendar = ({ adminSession }) => {
 
             const newBooking = {
                 id: `booking-${response.data.booking_id}`,
-                resourceId: selectedRoom,
+                resourceId: selectedRoom.toString(),
                 title: bookingDetails.title,
-                start: selectedSlot.start,
-                end: selectedSlot.end,
+                start: selectedSlot.start.toISOString(),
+                end: selectedSlot.end.toISOString(),
                 room: selectedRoom,
                 building: selectedBuilding,
                 buildingName: buildingInfo?.name || '',
@@ -395,10 +414,19 @@ const RoomBookingCalendar = ({ adminSession }) => {
                 description: bookingDetails.description,
                 userName: bookingDetails.userName,
                 uncw_id: bookingDetails.uncw_id,
-                color: roomInfo?.color || CALENDAR_CONFIG.COLORS.DEFAULT_EVENT
+                color: CALENDAR_CONFIG.COLORS.YOUR_BOOKING,
+                extendedProps: {
+                    isBooking: true,
+                    isYours: true,
+                    booking_id: response.data.booking_id,
+                    uncw_id: bookingDetails.uncw_id,
+                    first_name: bookingDetails.userName.split(' ')[0] || '',
+                    last_name: bookingDetails.userName.split(' ').slice(1).join(' ') || '',
+                    status: 'active'
+                }
             };
 
-            setEvents([...events, newBooking]);
+            setEvents(prevEvents => [...prevEvents, newBooking]);
             setShowBookingForm(false);
             setBookingDetails({ title: '', description: '', userName: '', uncw_id: '', userEmail: '' });
             alert('Booking created successfully!');
@@ -581,8 +609,8 @@ const RoomBookingCalendar = ({ adminSession }) => {
 
         const isBlocked = blocks.some(block =>
             block.room_id.toString() === selectInfo.resource?.id &&
-            new Date(block.start_time) < selectInfo.end &&
-            new Date(block.end_time) > selectInfo.start
+            new Date(block.start_time.replace(' ', 'T') + 'Z') < selectInfo.end &&
+            new Date(block.end_time.replace(' ', 'T') + 'Z') > selectInfo.start
         );
         return !isBlocked;
     };
@@ -621,6 +649,7 @@ const RoomBookingCalendar = ({ adminSession }) => {
 
                 const hasConflict = events.some(booking =>
                     booking.resourceId?.toString() === selectedSlot.room &&
+                    booking.extendedProps?.status !== 'cancelled' &&
                     new Date(booking.start) < segmentEnd &&
                     new Date(booking.end) > segmentStart
                 );

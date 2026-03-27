@@ -33,7 +33,7 @@ function Home({ adminSession, onLogin, onLogout }) {
         <PageShell adminSession={adminSession} onLogin={onLogin} onLogout={onLogout}>
             <aside>
                 <h3>Welcome to CSC-550 Booking System</h3>
-                <p>Book rooms and equipment for our project.</p>
+                <p>Book rooms and equipment here!</p>
             </aside>
             <section>
                 <hr />
