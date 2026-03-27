@@ -21,6 +21,7 @@ mariadb $DB_NAME < database/migrations/004_create_bookings_table.sql
 mariadb $DB_NAME < database/migrations/005_create_booking_rooms_table.sql
 mariadb $DB_NAME < database/migrations/006_create_booking_equipment_table.sql
 mariadb $DB_NAME < database/migrations/007_add_booking_indexes.sql
+mariadb $DB_NAME < database/migrations/008_add_booking_status.sql
 
 echo "✅ Migrations complete!"
 

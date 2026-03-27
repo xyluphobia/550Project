@@ -2,6 +2,7 @@ import { seedUsers } from './seedUsers.js';
 import { seedRooms } from './seedRooms.js';
 import { seedEquipment } from './seedEquipment.js';
 import { seedBookings } from './seedBookings.js';
+import { seedRoomBlocks } from './seedRoomBlocks.js';
 
 async function seedAll() {
   try {
