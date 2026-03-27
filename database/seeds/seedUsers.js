@@ -9,7 +9,8 @@ export async function seedUsers() {
     [850600010, 'Bob', 'Smith', 'bob@example.com', 'student', 1],
     [850600017, 'Alice', 'Johnson', 'alice@example.com', 'student', 1],
     [850600012, 'Carol', 'Davis', 'carol@example.com', 'faculty', 1],
-    [850600025, 'Dave', 'Miller', 'dave@example.com', 'staff', 0]
+    [850600025, 'Dave', 'Miller', 'dave@example.com', 'staff', 0],
+    [850600001, 'Admin', 'User', 'admin@example.com', 'admin', 1]
   ];
 
   for (const u of users) {

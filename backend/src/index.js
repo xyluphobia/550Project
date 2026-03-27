@@ -7,6 +7,7 @@ import usersRouter from './routes/users.js';
 import roomsRouter from './routes/rooms.js';
 import equipmentRouter from './routes/equipment.js';
 import bookingsRouter from './routes/bookings.js';
+import blocksRouter from './routes/blocks.js';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/rooms', roomsRouter);
 app.use('/api/equipment', equipmentRouter);
 app.use('/api/bookings', bookingsRouter);
+app.use('/api/blocks', blocksRouter);
 
 // Root endpoint for health check
 app.get('/', (req, res) => {
