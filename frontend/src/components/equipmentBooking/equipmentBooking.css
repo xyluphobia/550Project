@@ -24,7 +24,7 @@
 
 .tac-equipment {
     grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-row: 1;
     border-left: 1px solid #ddd;
     border-right: 1px solid #ddd;
     padding: 0 20px;
@@ -32,12 +32,12 @@
 
 .hd-equipment {
     grid-column: 1;
-    grid-row: 1 / span 2;
+    grid-row: 1;
 }
 
 .ms-equipment {
     grid-column: 3;
-    grid-row: 1 / span 2;
+    grid-row: 1;
 }
 
 /* Department Checkbox Styles */
@@ -83,10 +83,17 @@
     background-color: #f9f9f9;
 }
 
-/* Buttons */
-.reload-button {
-    grid-column: 1;
+/* Buttons Container */
+.buttons-container {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    gap: 20px;
     margin-top: 20px;
+    justify-content: flex-start;
+}
+
+.reload-button {
     padding: 8px 12px;
     font-size: 12px;
     background-color: rgb(136, 192, 197);
@@ -94,7 +101,6 @@
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    width: fit-content;
 }
 
 .reload-button:hover {
@@ -102,9 +108,6 @@
 }
 
 .form-button {
-    grid-column: 2 / span 2;
-    grid-row: 3;
-    margin-top: 20px;
     padding: 8px 12px;
     font-size: 12px;
     background-color: rgb(84, 164, 171);
@@ -112,8 +115,6 @@
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    width: fit-content;
-    justify-self: start;
 }
 
 .form-button:hover:not(:disabled) {
@@ -126,7 +127,38 @@
     opacity: 0.6;
 }
 
-/* Modal Styles */
+/* Responsive Design */
+@media (max-width: 768px) {
+    .equipment-booking-page {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .tac-equipment,
+    .hd-equipment,
+    .ms-equipment {
+        grid-column: 1;
+        grid-row: auto;
+        border-left: none;
+        border-right: none;
+        padding: 20px;
+    }
+    
+    .buttons-container {
+        grid-column: 1;
+        grid-row: auto;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .form-button,
+    .reload-button {
+        width: 100%;
+    }
+}
+
+/* Modal Styles (keep as before) */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -329,28 +361,4 @@
 
 .cancel-button:hover {
     background-color: #da190b;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .equipment-booking-page {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-    
-    .tac-equipment,
-    .hd-equipment,
-    .ms-equipment {
-        grid-column: 1;
-        grid-row: auto;
-        border-left: none;
-        border-right: none;
-        padding: 0;
-    }
-    
-    .form-button,
-    .reload-button {
-        grid-column: 1;
-        width: 100%;
-    }
 }

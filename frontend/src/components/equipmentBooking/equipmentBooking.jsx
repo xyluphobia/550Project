@@ -381,21 +381,23 @@ const EquipmentBooking = () => {
                     </ul>
                 </div>
                 
-                <button 
-                    className="form-button" 
-                    onClick={handleRentClick}
-                    disabled={selectedDepartments.length === 0}
-                >
-                    Continue to Equipment Selection ({selectedDepartments.length}/3 departments)
-                </button>
-                
-                <button className="reload-button" onClick={() => {
-                    setSelectedDepartments([]);
-                    setSelectedEquipment({});
-                    setFormData({});
-                }}>
-                    Reset All
-                </button>
+                <div className="buttons-container">
+                    <button 
+                        className="form-button" 
+                        onClick={handleRentClick}
+                        disabled={selectedDepartments.length === 0}
+                    >
+                        Continue to Equipment Selection ({selectedDepartments.length}/3 departments)
+                    </button>
+                    
+                    <button className="reload-button" onClick={() => {
+                        setSelectedDepartments([]);
+                        setSelectedEquipment({});
+                        setFormData({});
+                    }}>
+                        Reset All
+                    </button>
+                </div>
             </div>
 
             {/* Modal Form Popup */}
