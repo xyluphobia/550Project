@@ -1123,6 +1123,7 @@ const RoomBookingCalendar = ({ adminSession }) => {
                         ].map(item => (
                             <div key={item.label} className='legend-item'>
                                 <div className='legend-block' style={{ backgroundColor: item.color }}></div>
+                                <div className='box' style={{ backgroundColor: item.color }}></div>
                                 <span className='legend-color'>{item.label}</span>
                             </div>
                         ))}
