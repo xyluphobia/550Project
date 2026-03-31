@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import departmentEquipment from './departmentEquipment';
 import {EmailJSConfigEquipment} from '../EmailJS/emailJSConfiguration';
 import './equipmentBooking.css';
 
@@ -8,19 +9,11 @@ const EquipmentBooking = () => {
     const [equipmentList, setEquipmentList] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState(null);
-    const [selectedEquipment, setSelectedEquipment] = React.useState(null);
     const [bookingSuccess, setBookingSuccess] = React.useState(false);
     const [showForm, setShowForm] = React.useState(false);
-    
-    const backupList = [
-        { id: 'laptop-mac', name: 'laptop-MacOS', department: 'TAC'},
-        { id: 'laptop-win', name: 'laptop-DelWin', department: 'TAC'},
-        { id: 'calc-ti83', name: 'calculator-TI83', department: 'HD'},
-        { id: 'calc-ti84', name: 'calculator-TI84', department: 'HD'},
-        { id: 'charger-usbc', name: 'charger-laptop-usb-c', department: 'TAC'},
-        { id: 'camcorder-1', name: 'camcorder-1', department: 'MS'},
-        { id: 'camera-1', name: 'camera-1', department: 'MS'},
-    ];
+    const [formData, setFormData] = React.useState({});
+    const [selectedDepartments, setSelectedDepartments] = React.useState([]);
+    const [selectedEquipment, setSelectedEquipment] = React.useState({});
 
     React.useEffect(() => {
         axios.get('/api/equipment')
@@ -29,36 +22,282 @@ const EquipmentBooking = () => {
                     setEquipmentList(response.data);
                 } else {
                     console.error('Expected array but got:', typeof response.data);
-                    setEquipmentList(backupList);
+                    setEquipmentList([]);
                 }
                 setLoading(false);
             })
             .catch(error => {
                 console.error('Error fetching equipment data:', error);
-                setEquipmentList(backupList);
+                setEquipmentList([]);
                 setLoading(false);
             });
     }, []);
 
-    const equipmentArray = Array.isArray(equipmentList) ? equipmentList : [];
-
     const handleRentClick = () => {
+        if (selectedDepartments.length === 0) {
+            alert('Please select at least one department first.');
+            return;
+        }
         setShowForm(true);
-    };
-
-    const handleEquipmentSelect = (equipment) => {
-        setSelectedEquipment(equipment);
-        setBookingSuccess(true);
-        setTimeout(() => {
-            setBookingSuccess(false);
-            setShowForm(false);
-            setSelectedEquipment(null);
-        }, 3000);
     };
 
     const handleCloseForm = () => {
         setShowForm(false);
-        setSelectedEquipment(null);
+        setSelectedEquipment({});
+        setFormData({});
+        setBookingSuccess(false);
+    };
+
+    const handleDepartmentCheckbox = (departmentID) => {
+        setSelectedDepartments(prev => {
+            if (prev.includes(departmentID)) {
+                // Remove department and its equipment selections
+                const newSelection = prev.filter(id => id !== departmentID);
+                const newSelectedEquipment = { ...selectedEquipment };
+                // Clear equipment for this department
+                Object.keys(newSelectedEquipment).forEach(key => {
+                    if (key.startsWith(departmentID)) {
+                        delete newSelectedEquipment[key];
+                    }
+                });
+                setSelectedEquipment(newSelectedEquipment);
+                return newSelection;
+            } else {
+                if (prev.length >= 3) {
+                    alert('You can only select up to 3 departments. Please deselect one first.');
+                    return prev;
+                }
+                return [...prev, departmentID];
+            }
+        });
+    };
+
+    const handleEquipmentCheckbox = (departmentID, equipmentID, equipmentName, checked) => {
+        const equipmentKey = `${departmentID}_${equipmentID}`;
+        
+        setSelectedEquipment(prev => ({
+            ...prev,
+            [equipmentKey]: checked ? equipmentName : undefined
+        }));
+        
+        // Remove form data if equipment is unchecked
+        if (!checked) {
+            const newFormData = { ...formData };
+            const dept = departmentEquipment[departmentID];
+            const equipment = dept?.equipment.find(eq => eq.id === equipmentID);
+            if (equipment && equipment.fields) {
+                equipment.fields.forEach(field => {
+                    delete newFormData[field.name];
+                });
+            }
+            setFormData(newFormData);
+        }
+    };
+
+    const handleInputChange = (fieldName, value) => {
+        setFormData(prev => ({
+            ...prev,
+            [fieldName]: value
+        }));
+    };
+
+    const handleCheckboxArrayChange = (fieldName, option, checked) => {
+        const currentValue = formData[fieldName] || [];
+        let newValues;
+        if (checked) {
+            newValues = [...currentValue, option];
+        } else {
+            newValues = currentValue.filter(item => item !== option);
+        }
+        setFormData(prev => ({
+            ...prev,
+            [fieldName]: newValues
+        }));
+    };
+
+    const handleSubmitForm = async (e) => {
+        e.preventDefault();
+        
+        // Check if at least one equipment is selected
+        const hasSelectedEquipment = Object.values(selectedEquipment).some(value => value !== undefined);
+        if (!hasSelectedEquipment) {
+            alert('Please select at least one piece of equipment to rent.');
+            return;
+        }
+        
+        // Validate required fields for selected equipment
+        let isValid = true;
+        let missingFields = [];
+        
+        Object.keys(selectedEquipment).forEach(key => {
+            if (selectedEquipment[key]) {
+                const [departmentID, equipmentID] = key.split('_');
+                const dept = departmentEquipment[departmentID];
+                const equipment = dept?.equipment.find(eq => eq.id === parseInt(equipmentID));
+                if (equipment && equipment.fields) {
+                    equipment.fields.forEach(field => {
+                        const value = formData[field.name];
+                        if (field.required && (!value || (Array.isArray(value) && value.length === 0))) {
+                            isValid = false;
+                            missingFields.push(`${equipment.name}: ${field.label}`);
+                        }
+                    });
+                }
+            }
+        });
+        
+        if (!isValid) {
+            alert(`Please fill in the following required fields:\n${missingFields.join('\n')}`);
+            return;
+        }
+        
+        // Prepare email data
+        const emailData = {
+            departments: selectedDepartments.map(dept => {
+                const deptInfo = departmentEquipment[dept];
+                return {
+                    name: deptInfo.name,
+                    equipment: Object.keys(selectedEquipment)
+                        .filter(key => key.startsWith(dept))
+                        .map(key => {
+                            const [, equipmentID] = key.split('_');
+                            return deptInfo.equipment.find(eq => eq.id === parseInt(equipmentID))?.name;
+                        })
+                        .filter(name => name)
+                };
+            }),
+            userInfo: formData
+        };
+        
+        console.log('Booking submitted:', emailData);
+        
+        // Here you would send the email using EmailJS
+        setBookingSuccess(true);
+        alert('Booking request submitted successfully!');
+        setTimeout(() => {
+            handleCloseForm();
+            setSelectedDepartments([]);
+        }, 2000);
+    };
+
+    const renderEquipmentInForm = () => {
+        if (selectedDepartments.length === 0) return null;
+        
+        return (
+            <div className="equipment-selection-section">
+                <h3>Select Equipment</h3>
+                {selectedDepartments.map(deptID => {
+                    const dept = departmentEquipment[deptID];
+                    if (!dept) return null;
+                    
+                    return (
+                        <div key={deptID} className="department-equipment-section">
+                            <h4>{dept.name}</h4>
+                            <div className="equipment-checkboxes">
+                                {dept.equipment.map(equipment => {
+                                    const equipmentKey = `${deptID}_${equipment.id}`;
+                                    return (
+                                        <label key={equipment.id} className="equipment-checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={!!selectedEquipment[equipmentKey]}
+                                                onChange={(e) => handleEquipmentCheckbox(
+                                                    deptID,
+                                                    equipment.id,
+                                                    equipment.name,
+                                                    e.target.checked
+                                                )}
+                                            />
+                                            {equipment.name}
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
+    const renderDynamicFormFields = () => {
+        const equipmentFields = [];
+        
+        Object.keys(selectedEquipment).forEach(key => {
+            if (selectedEquipment[key]) {
+                const [departmentID, equipmentID] = key.split('_');
+                const dept = departmentEquipment[departmentID];
+                const equipment = dept?.equipment.find(eq => eq.id === parseInt(equipmentID));
+                if (equipment && equipment.fields) {
+                    equipmentFields.push({
+                        equipmentName: equipment.name,
+                        fields: equipment.fields,
+                        key: key
+                    });
+                }
+            }
+        });
+        
+        if (equipmentFields.length === 0) return null;
+        
+        return (
+            <div className="equipment-info-section">
+                <h3>Equipment Information</h3>
+                {equipmentFields.map(equip => (
+                    <div key={equip.key} className="equipment-form-group">
+                        <h4>{equip.equipmentName}</h4>
+                        {equip.fields.map(field => {
+                            if (field.type === 'text' || field.type === 'date' || field.type === 'number' || field.type === 'email') {
+                                return (
+                                    <div key={field.name} className="form-field">
+                                        <label>{field.label}{field.required && ' *'}</label>
+                                        <input
+                                            type={field.type}
+                                            value={formData[field.name] || ''}
+                                            onChange={(e) => handleInputChange(field.name, e.target.value)}
+                                            required={field.required}
+                                            placeholder={field.placeholder || ''}
+                                        />
+                                    </div>
+                                );
+                            } else if (field.type === 'textarea') {
+                                return (
+                                    <div key={field.name} className="form-field">
+                                        <label>{field.label}{field.required && ' *'}</label>
+                                        <textarea
+                                            value={formData[field.name] || ''}
+                                            onChange={(e) => handleInputChange(field.name, e.target.value)}
+                                            required={field.required}
+                                            rows={3}
+                                            placeholder={field.placeholder || ''}
+                                        />
+                                    </div>
+                                );
+                            } else if (field.type === 'checkbox-group' && field.options) {
+                                return (
+                                    <div key={field.name} className="form-field">
+                                        <label>{field.label}{field.required && ' *'}</label>
+                                        <div className="checkbox-group">
+                                            {field.options.map(option => (
+                                                <label key={option}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={(formData[field.name] || []).includes(option)}
+                                                        onChange={(e) => handleCheckboxArrayChange(field.name, option, e.target.checked)}
+                                                    />
+                                                    {option}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })}
+                    </div>
+                ))}
+            </div>
+        );
     };
 
     if (error) {
@@ -75,95 +314,113 @@ const EquipmentBooking = () => {
         return <p>Loading equipment...</p>;
     }
 
-    if (equipmentArray.length === 0) {
-          return (
-            <div>
-                <p>No equipment available at the moment.</p>
-                <p>Showing backup equipment list:</p>
-                <ul>
-                    {backupList.map((item, index) => (
-                        <li key={item.id || index}>{item.name} ({item.department})</li>
-                    ))}
-                </ul>
-            </div>
-        );
-    }
-
     return (
         <div className="equipment-booking-container">
-        <p>All equipment is located in the library.</p>
-        <div className="equipment-booking-page">
-            {/* TAC Section */}
-            <div className='tac-equipment'>
-                <h2>Technical Assistance Center (TAC)</h2>
-                {equipmentArray.filter(item => item.department === 'TAC').length > 0 ? (
+            <p>All equipment is located in the library.</p>
+            <div className="equipment-booking-page">
+                {/* HD Section */}
+                <div className='hd-equipment department-card'>
+                    <h2>Help Desk (HD)</h2>
+                    <div className="department-checkbox">
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={selectedDepartments.includes('HD')}
+                                onChange={() => handleDepartmentCheckbox('HD')}
+                            />
+                            Select HD Department
+                        </label>
+                    </div>
+                    <p>Available equipment:</p>
                     <ul>
-                        {equipmentArray.filter(item => item.department === 'TAC').map((item, index) => (
-                            <li key={item.id || `tac-${index}`}>
-                                {item.name || 'Unnamed Equipment'}
-                                    <button 
-                                        className="select-button" 
-                                        onClick={() => handleEquipmentSelect(item)}
-                                        style={{marginLeft: '10px', padding: '2px 8px'}}
-                                    >
-                                        Select
-                                    </button>
-                            </li>
-                        ))}
+                        <li>Calculator</li>
+                        <li>Kindle</li>
+                        <li>Dvd Player</li>
+                        <li>Media Cart</li>
                     </ul>
-                ) : ( 
-                    <p>No equipment available for TAC at the moment.</p>
-                )}
+                </div>
+
+                {/* TAC Section */}
+                <div className='tac-equipment department-card'>
+                    <h2>Technical Assistance Center (TAC)</h2>
+                    <div className="department-checkbox">
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={selectedDepartments.includes('TAC')}
+                                onChange={() => handleDepartmentCheckbox('TAC')}
+                            />
+                            Select TAC Department
+                        </label>
+                    </div>
+                    <p>Available equipment:</p>
+                    <ul>
+                        <li>Dell (Windows - OS)</li>
+                        <li>Macbook (MacOS - OS)</li>
+                        <li>Usb-C Chargers</li>
+                    </ul>
+                </div>
+
+                {/* MS Section */}
+                <div className='ms-equipment department-card'>
+                    <h2>Makerstudio (MS)</h2>
+                    <div className="department-checkbox">
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={selectedDepartments.includes('MS')}
+                                onChange={() => handleDepartmentCheckbox('MS')}
+                            />
+                            Select MS Department
+                        </label>
+                    </div>
+                    <p>Available equipment:</p>
+                    <ul>
+                        <li>Camera</li>
+                        <li>Camcorder</li>
+                    </ul>
+                </div>
+                
+                <button 
+                    className="form-button" 
+                    onClick={handleRentClick}
+                    disabled={selectedDepartments.length === 0}
+                >
+                    Continue to Equipment Selection ({selectedDepartments.length}/3 departments)
+                </button>
+                
+                <button className="reload-button" onClick={() => {
+                    setSelectedDepartments([]);
+                    setSelectedEquipment({});
+                    setFormData({});
+                }}>
+                    Reset All
+                </button>
             </div>
 
-            {/* HD Section */}
-            <div className='hd-equipment'>
-                <h2>Help Desk (HD)</h2>
-                {equipmentArray.filter(item => item.department === 'HD').length > 0 ? (
-                    <ul>
-                        {equipmentArray.filter(item => item.department === 'HD').map((item, index) => (
-                            <li key={item.id || `hd-${index}`}>
-                                {item.name || 'Unnamed Equipment'}
-                                    <button 
-                                        className="select-button" 
-                                        onClick={() => handleEquipmentSelect(item)}
-                                        style={{marginLeft: '10px', padding: '2px 8px'}}
-                                    >
-                                        Select
-                                    </button>
-                            </li>
-                        ))}
-                    </ul>
-                ) : ( 
-                    <p>No equipment available for HD at the moment.</p>
-                )}
-            </div>
-
-            {/* MS Section */}
-            <div className='ms-equipment'>
-                <h2>Makerstudio (MS)</h2>
-                {equipmentArray.filter(item => item.department === 'MS').length > 0 ? (
-                    <ul>
-                        {equipmentArray.filter(item => item.department === 'MS').map((item, index) => (
-                            <li key={item.id || `ms-${index}`}>
-                                {item.name || 'Unnamed Equipment'}
-                                    <button 
-                                        className="select-button" 
-                                        onClick={() => handleEquipmentSelect(item)}
-                                        style={{marginLeft: '10px', padding: '2px 8px'}}
-                                    >
-                                        Select
-                                    </button>
-                            </li>
-                        ))}
-                    </ul>
-                ) : ( 
-                    <p>No equipment available for MS at the moment.</p>
-                )}
-            </div>
-            <button className="form-button" onClick={handleRentClick}>Rent Equipment</button>
-            <button className="reload-button" onClick={() => window.location.reload()}>Reload</button>
-        </div>
+            {/* Modal Form Popup */}
+            {showForm && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h2>Equipment Booking Request</h2>
+                            <button className="close-button" onClick={handleCloseForm}>×</button>
+                        </div>
+                        <form onSubmit={handleSubmitForm}>
+                            {renderEquipmentInForm()}
+                            {renderDynamicFormFields()}
+                            <div className="form-actions">
+                                <button type="submit" className="submit-button">
+                                    Submit Booking Request
+                                </button>
+                                <button type="button" className="cancel-button" onClick={handleCloseForm}>
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

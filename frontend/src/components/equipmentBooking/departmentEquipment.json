@@ -1,0 +1,219 @@
+{
+  "TAC": {
+    "name": "Technical Assistance Center",
+    "equipment": [
+      {
+        "id": "dell",
+        "name": "Dell (Windows - OS)",
+        "fields": [
+          {
+            "name": "dell_asset_tag",
+            "label": "Asset Tag",
+            "type": "text",
+            "required": true,
+            "placeholder": "Enter asset tag number"
+          },
+          {
+            "name": "dell_os_version",
+            "label": "Windows Version",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., Windows 11 Pro"
+          },
+          {
+            "name": "dell_accessories",
+            "label": "Accessories Needed",
+            "type": "checkbox",
+            "options": ["Charger", "Mouse", "Docking Station", "Bag"]
+          }
+        ]
+      },
+      {
+        "id": "macbook",
+        "name": "Macbook (MacOS - OS)",
+        "fields": [
+          {
+            "name": "macbook_asset_tag",
+            "label": "Asset Tag",
+            "type": "text",
+            "required": true,
+            "placeholder": "Enter asset tag number"
+          },
+          {
+            "name": "macbook_os_version",
+            "label": "macOS Version",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., Sonoma 14.0"
+          },
+          {
+            "name": "macbook_screen_size",
+            "label": "Screen Size",
+            "type": "select",
+            "options": ["13-inch", "14-inch", "16-inch"],
+            "required": true
+          }
+        ]
+      },
+      {
+        "id": "usbc_charger",
+        "name": "USB-C Chargers",
+        "fields": [
+          {
+            "name": "charger_wattage",
+            "label": "Wattage Required",
+            "type": "select",
+            "options": ["30W", "45W", "60W", "96W", "140W"],
+            "required": true
+          },
+          {
+            "name": "charger_quantity",
+            "label": "Quantity",
+            "type": "number",
+            "required": true,
+            "placeholder": "Number of chargers needed"
+          }
+        ]
+      }
+    ]
+  },
+  "HD": {
+    "name": "Help Desk",
+    "equipment": [
+      {
+        "id": "calculator",
+        "name": "Calculator",
+        "fields": [
+          {
+            "name": "calculator_type",
+            "label": "Calculator Type",
+            "type": "select",
+            "options": ["TI-83", "TI-84", "TI-89", "Basic"],
+            "required": true
+          },
+          {
+            "name": "calculator_quantity",
+            "label": "Quantity",
+            "type": "number",
+            "required": true,
+            "placeholder": "Number of calculators needed"
+          }
+        ]
+      },
+      {
+        "id": "kindle",
+        "name": "Kindle",
+        "fields": [
+          {
+            "name": "kindle_generation",
+            "label": "Kindle Generation",
+            "type": "select",
+            "options": ["Paperwhite", "Oasis", "Basic"],
+            "required": true
+          },
+          {
+            "name": "kindle_accessories",
+            "label": "Accessories",
+            "type": "checkbox",
+            "options": ["Charger", "Case", "Screen Protector"]
+          }
+        ]
+      },
+      {
+        "id": "dvd_player",
+        "name": "DVD Player",
+        "fields": [
+          {
+            "name": "dvd_player_type",
+            "label": "Player Type",
+            "type": "select",
+            "options": ["Portable", "Standard", "Blu-ray"],
+            "required": true
+          },
+          {
+            "name": "dvd_remote",
+            "label": "Remote Control Needed",
+            "type": "checkbox",
+            "options": ["Yes", "No"]
+          }
+        ]
+      },
+      {
+        "id": "media_cart",
+        "name": "Media Cart",
+        "fields": [
+          {
+            "name": "cart_purpose",
+            "label": "Purpose",
+            "type": "text",
+            "required": true,
+            "placeholder": "What will you use the media cart for?"
+          },
+          {
+            "name": "cart_duration",
+            "label": "How long needed (hours)",
+            "type": "number",
+            "required": true,
+            "placeholder": "Number of hours"
+          }
+        ]
+      }
+    ]
+  },
+  "MS": {
+    "name": "Makerstudio",
+    "equipment": [
+      {
+        "id": "camera",
+        "name": "Camera",
+        "fields": [
+          {
+            "name": "camera_type",
+            "label": "Camera Type",
+            "type": "select",
+            "options": ["DSLR", "Mirrorless", "Point & Shoot"],
+            "required": true
+          },
+          {
+            "name": "camera_lens",
+            "label": "Lens Needed",
+            "type": "checkbox",
+            "options": ["Standard", "Wide Angle", "Telephoto"]
+          },
+          {
+            "name": "camera_accessories",
+            "label": "Accessories",
+            "type": "checkbox",
+            "options": ["Tripod", "Extra Battery", "Memory Card", "Bag"]
+          }
+        ]
+      },
+      {
+        "id": "camcorder",
+        "name": "Camcorder",
+        "fields": [
+          {
+            "name": "camcorder_resolution",
+            "label": "Resolution",
+            "type": "select",
+            "options": ["1080p", "4K"],
+            "required": true
+          },
+          {
+            "name": "camcorder_accessories",
+            "label": "Accessories",
+            "type": "checkbox",
+            "options": ["Tripod", "External Mic", "Extra Battery"]
+          },
+          {
+            "name": "camcorder_duration",
+            "label": "How long needed (days)",
+            "type": "number",
+            "required": true,
+            "placeholder": "Number of days"
+          }
+        ]
+      }
+    ]
+  }
+}
