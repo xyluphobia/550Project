@@ -5,6 +5,7 @@ import Navbar from './components/navbar/Navbar';
 import RoomBookingCalendar from './components/roomBookingCalendar/roomBookingCalendar';
 import EquipmentBooking from './components/equipmentBooking/equipmentBooking';
 import AdminPanel from './components/adminPanel/adminPanel';
+import ReservationStatus from './components/roomBookingCalendar/reservationStatus';
 
 // ── Shared page shell ────────────────────────────────────────────────────────
 function PageShell({ adminSession, onLogin, onLogout, children }) {
@@ -38,6 +39,7 @@ function Home({ adminSession, onLogin, onLogout }) {
             <section>
                 <hr />
                 <RoomBookingCalendar adminSession={adminSession} />
+                <ReservationStatus/>
             </section>
         </PageShell>
     );

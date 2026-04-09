@@ -1,0 +1,26 @@
+.reservation-box {
+    margin: 1rem;
+    padding: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+ul {
+    box-shadow: inset 0 0 0 1px #ccc;
+    list-style-type: none;
+    padding: 1rem;
+    margin: 0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+p {
+    margin: 0.5rem 0;
+    text-decoration: none;
+}
+
+p:first-child {
+    text-decoration: underline;
+}
