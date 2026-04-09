@@ -1,7 +1,7 @@
-/** 
+/* * 
 Sinclair DeYoung
 index/home page initial formating.
-**/
+*/
 
 body {
   font-family: Arial, Helvetica, sans-serif;
@@ -39,7 +39,7 @@ header {
   }
 }
 
-nav {
+.main-nav {
   background-color: rgb(4, 120, 123);
   display: block;
   text-align: center;
@@ -80,28 +80,10 @@ nav {
     border-radius: 25px;
     padding: 5px 20px;
   }
-
-  & .nav-right {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 20px;
-    margin-left: auto;
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-
-  & .nav-left {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
 }
 
 main {
-  display: inline-block;
+  display: block;
   justify-content: center;
   
   & .form-toggle {
@@ -139,4 +121,4 @@ footer {
   background-color: rgb(4, 120, 123);
   padding: 15px 30px;
   color: white;
-}
+} 

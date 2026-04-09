@@ -32,7 +32,7 @@ const EquipmentStatus = () => {
             <ul>
                 {equipment.map((item) => (
                     <li key={item.equipment_id}>
-                        <p>{item.equipment_name} - {item.status}</p>
+                        <p>{item.equipment_name} - {item.equipment_id} - {item.status}</p>
                     </li>
                 ))}
             </ul>

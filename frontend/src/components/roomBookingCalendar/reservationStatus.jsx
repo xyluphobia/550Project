@@ -33,10 +33,10 @@ const ReservationStatus = () => {
       {reservations.length === 0 ? (
         <p>No reservations found.</p>
       ) : (
-        <ul>
+        <ul className='reservation-ul'>
           {reservations.map(reservation => (
             <li key={reservation.id}>
-              <p>Reservation: {reservation.booking_id} - Room: {reservation.room_names} - {reservation.status}</p>
+              <p>Reservation: {reservation.booking_id} - Room: {reservation.room_id} - {reservation.status}</p>
             </li>
           ))}
         </ul>

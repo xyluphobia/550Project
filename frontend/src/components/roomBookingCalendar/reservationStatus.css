@@ -6,7 +6,7 @@
     background-color: #f9f9f9;
 }
 
-ul {
+.reservation-ul {
     box-shadow: inset 0 0 0 1px #ccc;
     list-style-type: none;
     padding: 1rem;

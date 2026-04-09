@@ -71,7 +71,7 @@ const Navbar = ({ adminSession, onLogin, onLogout }) => {
     };
 
     return (
-        <nav>
+        <nav className='main-nav'>
             <ul>
                 <li><Link to="/">Home</Link></li>
                 <li><Link to="/equipment">Equipment</Link></li>

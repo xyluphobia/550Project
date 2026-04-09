@@ -1,0 +1,8 @@
+.equipment-status {
+    justify-content: center;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    padding: 1rem;
+    margin-top: 2rem;
+}
