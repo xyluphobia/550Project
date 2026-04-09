@@ -6,6 +6,7 @@ import RoomBookingCalendar from './components/roomBookingCalendar/roomBookingCal
 import EquipmentBooking from './components/equipmentBooking/equipmentBooking';
 import AdminPanel from './components/adminPanel/adminPanel';
 import ReservationStatus from './components/roomBookingCalendar/reservationStatus';
+import EquipmentStatus from './components/equipmentBooking/equipmentStatus';
 
 // ── Shared page shell ────────────────────────────────────────────────────────
 function PageShell({ adminSession, onLogin, onLogout, children }) {
@@ -53,6 +54,7 @@ function EquipmentPage({ adminSession, onLogin, onLogout }) {
             <p>Available library equipment including laptops and specialised computers.</p>
             <section>
                 <EquipmentBooking />
+                <EquipmentStatus />
             </section>
         </PageShell>
     );
