@@ -54,6 +54,16 @@
     margin: 0.5rem 0;
 }
 
+.reservation-success {
+    color: #2e7d32;
+    background: #e8f5e9;
+    border: 1px solid #a5d6a7;
+    border-radius: 5px;
+    padding: 10px 14px;
+    font-size: 0.875rem;
+    margin: 0.5rem 0;
+}
+
 .reservation-btn {
     padding: 10px 0;
     background: #003580;
@@ -142,6 +152,89 @@
 .status-ended {
     background: #f3f3f3;
     color: #666;
+}
+
+/* Confirmation dialog */
+.confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.confirm-dialog {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    padding: 2rem;
+    width: 380px;
+    max-width: 90vw;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.confirm-dialog h3 {
+    margin: 0;
+    color: #003580;
+}
+
+.confirm-dialog p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.confirm-times {
+    color: #555;
+    font-size: 0.875rem !important;
+}
+
+.confirm-warning {
+    color: #cc2200;
+    font-size: 0.85rem !important;
+}
+
+.confirm-buttons {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.confirm-no-btn {
+    flex: 1;
+    padding: 10px 0;
+    background: #f0f0f0;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.confirm-no-btn:hover {
+    background: #e0e0e0;
+}
+
+.confirm-yes-btn {
+    flex: 1;
+    padding: 10px 0;
+    background: #cc2200;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.confirm-yes-btn:hover {
+    background: #991900;
 }
 
 /* Cancel button */

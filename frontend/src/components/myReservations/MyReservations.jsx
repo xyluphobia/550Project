@@ -24,8 +24,10 @@ export default function MyReservations() {
     const [loginError, setLoginError] = useState('');
     const [fetchError, setFetchError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [cancelError, setCancelError] = useState('');
+    const [confirmCancel, setConfirmCancel] = useState(null); // reservation pending confirmation
     const [cancellingId, setCancellingId] = useState(null);
+    const [cancelError, setCancelError] = useState('');
+    const [cancelSuccess, setCancelSuccess] = useState('');
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -69,8 +71,12 @@ export default function MyReservations() {
         }
     };
 
-    const handleCancel = async (bookingId) => {
+    const handleConfirmCancel = async () => {
+        if (!confirmCancel) return;
+        const bookingId = confirmCancel.booking_id;
+        setConfirmCancel(null);
         setCancelError('');
+        setCancelSuccess('');
         setCancellingId(bookingId);
         try {
             await axios.patch(`/api/bookings/${bookingId}/student-cancel`, {
@@ -80,6 +86,7 @@ export default function MyReservations() {
             setReservations(prev =>
                 prev.map(r => r.booking_id === bookingId ? { ...r, status: 'cancelled' } : r)
             );
+            setCancelSuccess(`Reservation #${bookingId} has been successfully cancelled.`);
         } catch (err) {
             setCancelError(err.response?.data?.error || 'Failed to cancel reservation. Please try again.');
         } finally {
@@ -133,6 +140,7 @@ export default function MyReservations() {
 
             {fetchError && <p className="reservation-error">{fetchError}</p>}
             {cancelError && <p className="reservation-error">{cancelError}</p>}
+            {cancelSuccess && <p className="reservation-success">{cancelSuccess}</p>}
 
             {!fetchError && reservations.length === 0 ? (
                 <p className="reservation-empty">You have no reservation history.</p>
@@ -169,7 +177,7 @@ export default function MyReservations() {
                                     {isCancellable(r) && (
                                         <button
                                             className="cancel-btn"
-                                            onClick={() => handleCancel(r.booking_id)}
+                                            onClick={() => { setCancelError(''); setCancelSuccess(''); setConfirmCancel(r); }}
                                             disabled={cancellingId === r.booking_id}
                                         >
                                             {cancellingId === r.booking_id ? 'Cancelling...' : 'Cancel'}
@@ -180,6 +188,34 @@ export default function MyReservations() {
                         ))}
                     </tbody>
                 </table>
+            )}
+
+            {confirmCancel && (
+                <div className="confirm-overlay">
+                    <div className="confirm-dialog">
+                        <h3>Cancel Reservation</h3>
+                        <p>
+                            Are you sure you want to cancel reservation{' '}
+                            <strong>#{confirmCancel.booking_id}</strong>?
+                        </p>
+                        <p className="confirm-times">
+                            {confirmCancel.room_code && (
+                                <span>{confirmCancel.room_code} — {confirmCancel.building_name}<br /></span>
+                            )}
+                            {formatDate(confirmCancel.start_time)},{' '}
+                            {formatTime(confirmCancel.start_time)} – {formatTime(confirmCancel.end_time)}
+                        </p>
+                        <p className="confirm-warning">This action cannot be undone.</p>
+                        <div className="confirm-buttons">
+                            <button className="confirm-no-btn" onClick={() => setConfirmCancel(null)}>
+                                Keep Reservation
+                            </button>
+                            <button className="confirm-yes-btn" onClick={handleConfirmCancel}>
+                                Yes, Cancel It
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
