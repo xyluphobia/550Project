@@ -4,29 +4,47 @@ import './adminPanel.css';
 
 const API_BASE_URL = '/api';
 const BOOKINGS_API_URL = `${API_BASE_URL}/bookings`;
+const EQUIPMENT_BOOKINGS_API_URL = `${API_BASE_URL}/equipment-bookings`;
 
 const AdminPanel = ({ adminSession }) => {
     const [bookings, setBookings] = useState([]);
+    const [equipmentBookings, setEquipmentBookings] = useState([]);
+    const [activeTab, setActiveTab] = useState('rooms'); // 'rooms' or 'equipment'
     const [loading, setLoading] = useState(false);
+    const [loadingEquipment, setLoadingEquipment] = useState(false);
     const [error, setError] = useState(null);
     const [cancellingId, setCancellingId] = useState(null);
     const [confirmCancel, setConfirmCancel] = useState(null);
 
     useEffect(() => {
-        const fetchBookings = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const response = await axios.get(BOOKINGS_API_URL);
-                setBookings(response.data);
-            } catch (err) {
-                setError('Failed to load bookings.');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchBookings();
+        fetchRoomBookings();
+        fetchEquipmentBookings();
     }, []);
+
+    const fetchRoomBookings = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await axios.get(BOOKINGS_API_URL);
+            setBookings(response.data);
+        } catch (err) {
+            setError('Failed to load room bookings.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchEquipmentBookings = async () => {
+        setLoadingEquipment(true);
+        try {
+            const response = await axios.get(EQUIPMENT_BOOKINGS_API_URL);
+            setEquipmentBookings(response.data);
+        } catch (err) {
+            console.error('Failed to load equipment bookings:', err);
+        } finally {
+            setLoadingEquipment(false);
+        }
+    };
 
     const handleCancelClick = (booking) => {
         setConfirmCancel(booking);
@@ -54,6 +72,28 @@ const AdminPanel = ({ adminSession }) => {
         }
     };
 
+    const handleCancelEquipmentBooking = async (bookingId) => {
+        setCancellingId(bookingId);
+        try {
+            await axios.patch(`${EQUIPMENT_BOOKINGS_API_URL}/${bookingId}/cancel`, {
+                admin_uncw_id: adminSession.uncw_id
+            });
+            setEquipmentBookings(prev =>
+                prev.map(b =>
+                    b.booking_id === bookingId
+                        ? { ...b, status: 'cancelled' }
+                        : b
+                )
+            );
+            alert('Equipment booking cancelled successfully!');
+        } catch (err) {
+            console.error('Failed to cancel equipment booking:', err);
+            alert('Failed to cancel equipment booking.');
+        } finally {
+            setCancellingId(null);
+        }
+    };
+
     const formatDateTime = (dt) => {
         if (!dt) return '—';
         return new Date(dt).toLocaleString([], {
@@ -69,73 +109,159 @@ const AdminPanel = ({ adminSession }) => {
                 <span className="admin-panel-user">Logged in as {adminSession.name}</span>
             </div>
 
-            {error && <div className="admin-error">{error}</div>}
-            {loading && <div className="admin-loading">Loading reservations...</div>}
+            {/* Tab Navigation */}
+            <div className="admin-tabs">
+                <button
+                    className={`admin-tab ${activeTab === 'rooms' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('rooms')}
+                >
+                    Room Reservations
+                </button>
+                <button
+                    className={`admin-tab ${activeTab === 'equipment' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('equipment')}
+                >
+                    Equipment Reservations
+                </button>
+            </div>
 
-            {!loading && (
-                <table className="admin-bookings-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>User</th>
-                            <th>Type</th>
-                            <th>Room / Equipment</th>
-                            <th>Start</th>
-                            <th>End</th>
-                            <th>Notes</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {bookings.length === 0 && (
-                            <tr><td colSpan="9" className="admin-no-bookings">No reservations found.</td></tr>
-                        )}
-                        {bookings.map(b => (
-                            <tr key={b.booking_id} className={b.status === 'cancelled' ? 'row-cancelled' : ''}>
-                                <td>{b.booking_id}</td>
-                                <td>
-                                    {b.first_name || b.last_name
-                                        ? `${b.first_name} ${b.last_name}`.trim()
-                                        : b.uncw_id}
-                                    <br />
-                                    <span className="admin-sub">ID: {b.uncw_id}</span>
-                                </td>
-                                <td>{b.booking_type}</td>
-                                <td>
-                                    {b.room_code
-                                        ? `${b.room_code} — ${b.building_name}`
-                                        : b.equipment_id ? `Equipment #${b.equipment_id}` : '—'}
-                                </td>
-                                <td>{formatDateTime(b.start_time)}</td>
-                                <td>{formatDateTime(b.end_time)}</td>
-                                <td>{b.notes || '—'}</td>
-                                <td>
-                                    <span className={`status-badge status-${b.status || 'active'}`}>
-                                        {b.status || 'active'}
-                                    </span>
-                                </td>
-                                <td>
-                                    {b.status === 'cancelled' ? (
-                                        <span className="cancelled-label">Cancelled</span>
-                                    ) : new Date(b.end_time) < new Date() ? (
-                                        <span className="ended-label">Ended</span>
-                                    ) : (
-                                        <button
-                                            className="cancel-btn"
-                                            onClick={() => handleCancelClick(b)}
-                                            disabled={cancellingId === b.booking_id}
-                                        >
-                                            {cancellingId === b.booking_id ? 'Cancelling...' : 'Cancel'}
-                                        </button>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            {error && <div className="admin-error">{error}</div>}
+
+            {/* Room Bookings Tab */}
+            {activeTab === 'rooms' && (
+                <>
+                    {loading && <div className="admin-loading">Loading room reservations...</div>}
+                    {!loading && (
+                        <table className="admin-bookings-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>User</th>
+                                    <th>Type</th>
+                                    <th>Room / Equipment</th>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th>Notes</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {bookings.length === 0 && (
+                                    <tr><td colSpan="9" className="admin-no-bookings">No room reservations found.</td></tr>
+                                )}
+                                {bookings.map(b => (
+                                    <tr key={b.booking_id} className={b.status === 'cancelled' ? 'row-cancelled' : ''}>
+                                        <td>{b.booking_id}</td>
+                                        <td>
+                                            {b.first_name || b.last_name
+                                                ? `${b.first_name} ${b.last_name}`.trim()
+                                                : b.uncw_id}
+                                            <br />
+                                            <span className="admin-sub">ID: {b.uncw_id}</span>
+                                        </td>
+                                        <td>{b.booking_type}</td>
+                                        <td>
+                                            {b.room_code
+                                                ? `${b.room_code} — ${b.building_name}`
+                                                : b.equipment_id ? `Equipment #${b.equipment_id}` : '—'}
+                                        </td>
+                                        <td>{formatDateTime(b.start_time)}</td>
+                                        <td>{formatDateTime(b.end_time)}</td>
+                                        <td>{b.notes || '—'}</td>
+                                        <td>
+                                            <span className={`status-badge status-${b.status || 'active'}`}>
+                                                {b.status || 'active'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {b.status === 'cancelled' ? (
+                                                <span className="cancelled-label">Cancelled</span>
+                                            ) : new Date(b.end_time) < new Date() ? (
+                                                <span className="ended-label">Ended</span>
+                                            ) : (
+                                                <button
+                                                    className="cancel-btn"
+                                                    onClick={() => handleCancelClick(b)}
+                                                    disabled={cancellingId === b.booking_id}
+                                                >
+                                                    {cancellingId === b.booking_id ? 'Cancelling...' : 'Cancel'}
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </>
             )}
 
+            {/* Equipment Bookings Tab */}
+            {activeTab === 'equipment' && (
+                <>
+                    {loadingEquipment && <div className="admin-loading">Loading equipment reservations...</div>}
+                    {!loadingEquipment && (
+                        <table className="admin-bookings-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>User</th>
+                                    <th>Equipment</th>
+                                    <th>Departments</th>
+                                    <th>Booking Date</th>
+                                    <th>Return Date</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {equipmentBookings.length === 0 && (
+                                    <tr><td colSpan="8" className="admin-no-bookings">No equipment reservations found.</td></tr>
+                                )}
+                                {equipmentBookings.map(b => (
+                                    <tr key={b.booking_id} className={b.status === 'cancelled' ? 'row-cancelled' : ''}>
+                                        <td>{b.booking_id}</td>
+                                        <td>
+                                            {b.first_name || b.last_name
+                                                ? `${b.first_name || ''} ${b.last_name || ''}`.trim()
+                                                : b.uncw_id}
+                                            <br />
+                                            <span className="admin-sub">ID: {b.uncw_id}</span>
+                                            <br />
+                                            <span className="admin-sub">{b.email}</span>
+                                        </td>
+                                        <td>{b.equipment_list || '—'}</td>
+                                        <td>{b.departments || '—'}</td>
+                                        <td>{formatDateTime(b.booking_date)}</td>
+                                        <td>{formatDateTime(b.return_date)}</td>
+                                        <td>
+                                            <span className={`status-badge status-${b.status || 'active'}`}>
+                                                {b.status || 'active'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {b.status === 'cancelled' ? (
+                                                <span className="cancelled-label">Cancelled</span>
+                                            ) : (
+                                                <button
+                                                    className="cancel-btn"
+                                                    onClick={() => handleCancelEquipmentBooking(b.booking_id)}
+                                                    disabled={cancellingId === b.booking_id}
+                                                >
+                                                    {cancellingId === b.booking_id ? 'Cancelling...' : 'Cancel'}
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </>
+            )}
+
+            {/* Cancel Confirmation Dialog for Room Bookings */}
             {confirmCancel && (
                 <div className="confirm-overlay">
                     <div className="confirm-dialog">

@@ -55,7 +55,7 @@ function EquipmentPage({ adminSession, onLogin, onLogout }) {
             <p>Available library equipment including laptops and specialised computers.</p>
             <section>
                 <EquipmentBooking />
-                <EquipmentStatus />
+                <EquipmentStatus adminSession={adminSession} />
             </section>
         </PageShell>
     );
