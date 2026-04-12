@@ -237,6 +237,95 @@
     background: #991900;
 }
 
+/* Edit button */
+.edit-btn {
+    padding: 5px 12px;
+    background: #003580;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: background 0.2s;
+    white-space: nowrap;
+    margin-right: 6px;
+}
+
+.edit-btn:hover {
+    background: #002060;
+}
+
+/* Action cell spacing */
+.action-cell {
+    white-space: nowrap;
+}
+
+/* Edit dialog — wider than the cancel dialog */
+.edit-dialog {
+    width: 460px;
+}
+
+/* Edit form fields */
+.edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 0.25rem 0;
+}
+
+.edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.edit-field label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.edit-field input,
+.edit-field textarea {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 0.875rem;
+    font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.edit-field input:focus,
+.edit-field textarea:focus {
+    outline: none;
+    border-color: #003580;
+}
+
+.edit-field textarea {
+    resize: vertical;
+}
+
+.field-hint {
+    font-weight: 400;
+    color: #777;
+}
+
+.room-capacity {
+    font-size: 0.82rem;
+    color: #666;
+}
+
+/* Save button variant (blue instead of red) */
+.edit-save-btn {
+    background: #003580 !important;
+}
+
+.edit-save-btn:hover:not(:disabled) {
+    background: #002060 !important;
+}
+
 /* Cancel button */
 .cancel-btn {
     padding: 5px 12px;
