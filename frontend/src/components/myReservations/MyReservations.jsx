@@ -77,7 +77,9 @@ export default function MyReservations() {
         }
 
         try {
-            const bookingsRes = await axios.get(`/api/bookings/user/${verifiedStudent.uncw_id}`);
+            const bookingsRes = await axios.get(`/api/bookings/user/${verifiedStudent.uncw_id}`, {
+                params: { email: verifiedStudent.email }
+            });
             setReservations(bookingsRes.data);
             setStudent(verifiedStudent);
         } catch {
@@ -236,9 +238,10 @@ export default function MyReservations() {
             {cancelError && <p className="reservation-error">{cancelError}</p>}
             {actionSuccess && <p className="reservation-success">{actionSuccess}</p>}
 
-            {!fetchError && reservations.length === 0 ? (
+            {!fetchError && reservations.length === 0 && (
                 <p className="reservation-empty">You have no reservation history.</p>
-            ) : (
+            )}
+            {!fetchError && reservations.length > 0 && (
                 <table className="reservation-table">
                     <thead>
                         <tr>

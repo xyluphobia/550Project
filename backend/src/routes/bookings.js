@@ -24,8 +24,28 @@ router.get('/', async (req, res) => {
 });
 
 // GET all room bookings for a specific user, sorted most recent first
+// Requires email query param to verify the caller is actually that user
 router.get('/user/:uncw_id', async (req, res) => {
   const { uncw_id } = req.params;
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(400).json({ error: 'email query parameter is required.' });
+  }
+
+  try {
+    const users = await query(
+      'SELECT uncw_id FROM users WHERE uncw_id = ? AND email = ?',
+      [uncw_id, email.trim()]
+    );
+    if (!users.length) {
+      return res.status(401).json({ error: 'Identity verification failed.' });
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Database error.' });
+  }
+
   try {
     const bookings = await query(`
       SELECT
@@ -451,17 +471,26 @@ router.patch('/:booking_id/student-edit', async (req, res) => {
       return res.status(400).json({ error: 'The requested time overlaps with an administrator block for this room.' });
     }
 
-    // Apply updates
-    await query(
-      'UPDATE bookings SET start_time = ?, end_time = ?, notes = ? WHERE booking_id = ?',
-      [startStr, endStr, notes ?? null, booking_id]
-    );
-
-    if (group_size != null) {
-      await query(
-        'UPDATE booking_rooms SET group_size = ? WHERE booking_id = ?',
-        [group_size, booking_id]
+    // Apply updates atomically
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      await connection.query(
+        'UPDATE bookings SET start_time = ?, end_time = ?, notes = ? WHERE booking_id = ?',
+        [startStr, endStr, notes ?? null, booking_id]
       );
+      if (group_size != null) {
+        await connection.query(
+          'UPDATE booking_rooms SET group_size = ? WHERE booking_id = ?',
+          [group_size, booking_id]
+        );
+      }
+      await connection.commit();
+    } catch (updateErr) {
+      await connection.rollback();
+      throw updateErr;
+    } finally {
+      connection.release();
     }
 
     res.json({ message: 'Reservation updated successfully.', booking_id });
