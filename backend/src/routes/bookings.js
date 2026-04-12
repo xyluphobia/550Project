@@ -23,6 +23,32 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET all room bookings for a specific user, sorted most recent first
+router.get('/user/:uncw_id', async (req, res) => {
+  const { uncw_id } = req.params;
+  try {
+    const bookings = await query(`
+      SELECT
+        b.booking_id,
+        b.start_time,
+        b.end_time,
+        b.status,
+        b.created_at,
+        r.room_code,
+        r.building_name
+      FROM bookings b
+      LEFT JOIN booking_rooms br ON b.booking_id = br.booking_id
+      LEFT JOIN rooms r ON br.room_id = r.room_id
+      WHERE b.uncw_id = ? AND b.booking_type = 'room'
+      ORDER BY b.start_time DESC
+    `, [uncw_id]);
+    res.json(bookings);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database error.' });
+  }
+});
+
 // GET booking by id
 router.get('/:booking_id', async (req, res) => {
   const { booking_id } = req.params;
@@ -233,6 +259,59 @@ router.patch('/:booking_id/cancel', async (req, res) => {
 
     if (!booking.length) {
       return res.status(404).json({ error: 'Booking not found.' });
+    }
+
+    if (booking[0].status === 'cancelled') {
+      return res.status(400).json({ error: 'Booking is already cancelled.' });
+    }
+
+    if (new Date(booking[0].end_time) < new Date()) {
+      return res.status(400).json({ error: 'Cannot cancel a booking that has already ended.' });
+    }
+
+    await query(
+      "UPDATE bookings SET status = 'cancelled' WHERE booking_id = ?",
+      [booking_id]
+    );
+
+    res.json({ message: 'Booking cancelled successfully.', booking_id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database error.' });
+  }
+});
+
+// PATCH cancel booking (student - own booking only, only if not yet ended)
+router.patch('/:booking_id/student-cancel', async (req, res) => {
+  const { booking_id } = req.params;
+  const { uncw_id, email } = req.body;
+
+  if (!uncw_id || !email) {
+    return res.status(400).json({ error: 'uncw_id and email are required.' });
+  }
+
+  try {
+    // Verify student identity
+    const users = await query(
+      'SELECT uncw_id FROM users WHERE uncw_id = ? AND email = ?',
+      [uncw_id, email.trim()]
+    );
+    if (!users.length) {
+      return res.status(401).json({ error: 'Identity verification failed.' });
+    }
+
+    // Fetch the booking
+    const booking = await query(
+      'SELECT booking_id, uncw_id, status, end_time FROM bookings WHERE booking_id = ?',
+      [booking_id]
+    );
+
+    if (!booking.length) {
+      return res.status(404).json({ error: 'Booking not found.' });
+    }
+
+    if (booking[0].uncw_id !== parseInt(uncw_id)) {
+      return res.status(403).json({ error: 'Access denied. This booking does not belong to you.' });
     }
 
     if (booking[0].status === 'cancelled') {

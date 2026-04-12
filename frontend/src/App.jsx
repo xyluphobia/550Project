@@ -6,6 +6,7 @@ import RoomBookingCalendar from './components/roomBookingCalendar/roomBookingCal
 import EquipmentBooking from './components/equipmentBooking/equipmentBooking';
 import AdminPanel from './components/adminPanel/adminPanel';
 import ReservationStatus from './components/roomBookingCalendar/reservationStatus';
+import MyReservations from './components/myReservations/MyReservations';
 
 // ── Shared page shell ────────────────────────────────────────────────────────
 function PageShell({ adminSession, onLogin, onLogout, children }) {
@@ -58,6 +59,14 @@ function EquipmentPage({ adminSession, onLogin, onLogout }) {
     );
 }
 
+function MyReservationsPage({ adminSession, onLogin, onLogout }) {
+    return (
+        <PageShell adminSession={adminSession} onLogin={onLogin} onLogout={onLogout}>
+            <MyReservations />
+        </PageShell>
+    );
+}
+
 function AdminPage({ adminSession, onLogin, onLogout }) {
     const navigate = useNavigate();
 
@@ -100,6 +109,9 @@ function App() {
                 } />
                 <Route path="/equipment" element={
                     <EquipmentPage adminSession={adminSession} onLogin={handleLogin} onLogout={handleLogout} />
+                } />
+                <Route path="/my-reservations" element={
+                    <MyReservationsPage adminSession={adminSession} onLogin={handleLogin} onLogout={handleLogout} />
                 } />
                 <Route path="/admin" element={
                     <AdminPage adminSession={adminSession} onLogin={handleLogin} onLogout={handleLogout} />

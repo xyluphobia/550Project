@@ -75,6 +75,7 @@ const Navbar = ({ adminSession, onLogin, onLogout }) => {
             <ul>
                 <li><Link to="/">Home</Link></li>
                 <li><Link to="/equipment">Equipment</Link></li>
+                <li><Link to="/my-reservations">My Reservations</Link></li>
                 <li className="admin-nav-item" ref={dropdownRef}>
                     {isOnAdminPage && adminSession ? (
                         <button className="nav-logout-btn" onClick={handleLogout}>

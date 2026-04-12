@@ -1,0 +1,168 @@
+.my-reservations {
+    padding: 2rem;
+    max-width: 1050px;
+    margin: 0 auto;
+}
+
+.my-reservations h2 {
+    margin-bottom: 0.5rem;
+    color: #003580;
+}
+
+/* Login form */
+.reservation-login-form {
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    background: #f9f9f9;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group input {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #003580;
+}
+
+.reservation-error {
+    color: #cc0000;
+    font-size: 0.875rem;
+    margin: 0.5rem 0;
+}
+
+.reservation-btn {
+    padding: 10px 0;
+    background: #003580;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.reservation-btn:hover:not(:disabled) {
+    background: #002060;
+}
+
+.reservation-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Header row when logged in */
+.reservation-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.reservation-student-name {
+    font-weight: 600;
+    color: #555;
+    font-size: 0.95rem;
+}
+
+/* Empty state */
+.reservation-empty {
+    color: #666;
+    font-style: italic;
+    margin-top: 1rem;
+}
+
+/* Reservations table */
+.reservation-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.reservation-table th,
+.reservation-table td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.reservation-table th {
+    background: #003580;
+    color: #fff;
+    font-weight: 600;
+}
+
+.reservation-table tbody tr:hover td {
+    background: #f5f8ff;
+}
+
+/* Status badges */
+.status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-active {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-cancelled {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.status-ended {
+    background: #f3f3f3;
+    color: #666;
+}
+
+/* Cancel button */
+.cancel-btn {
+    padding: 5px 12px;
+    background: #cc2200;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.cancel-btn:hover:not(:disabled) {
+    background: #991900;
+}
+
+.cancel-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

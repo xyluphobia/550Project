@@ -16,6 +16,27 @@ router.get('/', async (req, res) => {
   }
 });
 
+// POST /api/users/verify - verify student identity by UNCW ID + email
+router.post('/verify', async (req, res) => {
+  const { uncw_id, email } = req.body;
+  if (!uncw_id || !email) {
+    return res.status(400).json({ error: 'uncw_id and email are required.' });
+  }
+  try {
+    const users = await query(
+      'SELECT uncw_id, first_name, last_name, email, role FROM users WHERE uncw_id = ? AND email = ?',
+      [uncw_id, email.trim()]
+    );
+    if (!users.length) {
+      return res.status(401).json({ error: 'No account found with that UNCW ID and email.' });
+    }
+    res.json(users[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database error.' });
+  }
+});
+
 // Create a new user
 router.post('/', async (req, res) => {
   const { uncw_id, first_name, last_name, email, role, is_active } = req.body;
