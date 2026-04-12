@@ -23,6 +23,55 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET all room bookings for a specific user, sorted most recent first
+// Requires email query param to verify the caller is actually that user
+router.get('/user/:uncw_id', async (req, res) => {
+  const { uncw_id } = req.params;
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(400).json({ error: 'email query parameter is required.' });
+  }
+
+  try {
+    const users = await query(
+      'SELECT uncw_id FROM users WHERE uncw_id = ? AND email = ?',
+      [uncw_id, email.trim()]
+    );
+    if (!users.length) {
+      return res.status(401).json({ error: 'Identity verification failed.' });
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Database error.' });
+  }
+
+  try {
+    const bookings = await query(`
+      SELECT
+        b.booking_id,
+        b.start_time,
+        b.end_time,
+        b.status,
+        b.created_at,
+        b.notes,
+        r.room_code,
+        r.building_name,
+        r.room_capacity,
+        br.group_size
+      FROM bookings b
+      LEFT JOIN booking_rooms br ON b.booking_id = br.booking_id
+      LEFT JOIN rooms r ON br.room_id = r.room_id
+      WHERE b.uncw_id = ? AND b.booking_type = 'room'
+      ORDER BY b.start_time DESC
+    `, [uncw_id]);
+    res.json(bookings);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database error.' });
+  }
+});
+
 // GET booking by id
 router.get('/:booking_id', async (req, res) => {
   const { booking_id } = req.params;
@@ -249,6 +298,202 @@ router.patch('/:booking_id/cancel', async (req, res) => {
     );
 
     res.json({ message: 'Booking cancelled successfully.', booking_id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database error.' });
+  }
+});
+
+// PATCH cancel booking (student - own booking only, only if not yet ended)
+router.patch('/:booking_id/student-cancel', async (req, res) => {
+  const { booking_id } = req.params;
+  const { uncw_id, email } = req.body;
+
+  if (!uncw_id || !email) {
+    return res.status(400).json({ error: 'uncw_id and email are required.' });
+  }
+
+  try {
+    // Verify student identity
+    const users = await query(
+      'SELECT uncw_id FROM users WHERE uncw_id = ? AND email = ?',
+      [uncw_id, email.trim()]
+    );
+    if (!users.length) {
+      return res.status(401).json({ error: 'Identity verification failed.' });
+    }
+
+    // Fetch the booking
+    const booking = await query(
+      'SELECT booking_id, uncw_id, status, end_time FROM bookings WHERE booking_id = ?',
+      [booking_id]
+    );
+
+    if (!booking.length) {
+      return res.status(404).json({ error: 'Booking not found.' });
+    }
+
+    if (booking[0].uncw_id !== parseInt(uncw_id)) {
+      return res.status(403).json({ error: 'Access denied. This booking does not belong to you.' });
+    }
+
+    if (booking[0].status === 'cancelled') {
+      return res.status(400).json({ error: 'Booking is already cancelled.' });
+    }
+
+    if (new Date(booking[0].end_time) < new Date()) {
+      return res.status(400).json({ error: 'Cannot cancel a booking that has already ended.' });
+    }
+
+    await query(
+      "UPDATE bookings SET status = 'cancelled' WHERE booking_id = ?",
+      [booking_id]
+    );
+
+    res.json({ message: 'Booking cancelled successfully.', booking_id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database error.' });
+  }
+});
+
+// PATCH edit booking (student - own booking only, only if not yet ended)
+router.patch('/:booking_id/student-edit', async (req, res) => {
+  const { booking_id } = req.params;
+  const { uncw_id, email, start_time, end_time, notes, group_size } = req.body;
+
+  if (!uncw_id || !email) {
+    return res.status(400).json({ error: 'uncw_id and email are required.' });
+  }
+  if (!start_time || !end_time) {
+    return res.status(400).json({ error: 'start_time and end_time are required.' });
+  }
+
+  const start = new Date(start_time);
+  const end = new Date(end_time);
+  const now = new Date();
+
+  if (isNaN(start) || isNaN(end)) {
+    return res.status(400).json({ error: 'Invalid date format.' });
+  }
+  if (start >= end) {
+    return res.status(400).json({ error: 'Start time must be before end time.' });
+  }
+  if (start < now) {
+    return res.status(400).json({ error: 'Start time cannot be in the past.' });
+  }
+  if (end < now) {
+    return res.status(400).json({ error: 'End time cannot be in the past.' });
+  }
+
+  try {
+    // Verify student identity
+    const users = await query(
+      'SELECT uncw_id FROM users WHERE uncw_id = ? AND email = ?',
+      [uncw_id, email.trim()]
+    );
+    if (!users.length) {
+      return res.status(401).json({ error: 'Identity verification failed.' });
+    }
+
+    // Fetch booking
+    const booking = await query(
+      'SELECT booking_id, uncw_id, status, end_time FROM bookings WHERE booking_id = ?',
+      [booking_id]
+    );
+    if (!booking.length) {
+      return res.status(404).json({ error: 'Booking not found.' });
+    }
+    if (booking[0].uncw_id !== parseInt(uncw_id)) {
+      return res.status(403).json({ error: 'Access denied. This booking does not belong to you.' });
+    }
+    if (booking[0].status === 'cancelled') {
+      return res.status(400).json({ error: 'Cannot edit a cancelled reservation.' });
+    }
+    if (new Date(booking[0].end_time) < now) {
+      return res.status(400).json({ error: 'Cannot edit a reservation that has already ended.' });
+    }
+
+    // Get room info for this booking
+    const roomInfo = await query(`
+      SELECT br.room_id, r.room_capacity
+      FROM booking_rooms br
+      JOIN rooms r ON br.room_id = r.room_id
+      WHERE br.booking_id = ?
+    `, [booking_id]);
+
+    if (!roomInfo.length) {
+      return res.status(400).json({ error: 'No room associated with this booking.' });
+    }
+
+    const { room_id, room_capacity } = roomInfo[0];
+
+    // Validate group size against room capacity
+    if (group_size != null) {
+      if (group_size < 1) {
+        return res.status(400).json({ error: 'Group size must be at least 1.' });
+      }
+      if (room_capacity != null && group_size > room_capacity) {
+        return res.status(400).json({ error: `Group size cannot exceed the room capacity of ${room_capacity}.` });
+      }
+    }
+
+    const startStr = start.toISOString().slice(0, 19).replace('T', ' ');
+    const endStr = end.toISOString().slice(0, 19).replace('T', ' ');
+
+    // Check for booking conflicts (excluding this booking)
+    const conflicts = await query(`
+      SELECT 1
+      FROM bookings b
+      JOIN booking_rooms br ON b.booking_id = br.booking_id
+      WHERE br.room_id = ?
+      AND b.booking_id != ?
+      AND b.start_time < ?
+      AND b.end_time > ?
+      AND b.status = 'active'
+      LIMIT 1
+    `, [room_id, booking_id, endStr, startStr]);
+
+    if (conflicts.length > 0) {
+      return res.status(400).json({ error: 'The requested time conflicts with another reservation for this room.' });
+    }
+
+    // Check room blocks
+    const blocked = await query(`
+      SELECT 1 FROM room_blocks
+      WHERE room_id = ?
+      AND start_time < ?
+      AND end_time > ?
+      LIMIT 1
+    `, [room_id, endStr, startStr]);
+
+    if (blocked.length > 0) {
+      return res.status(400).json({ error: 'The requested time overlaps with an administrator block for this room.' });
+    }
+
+    // Apply updates atomically
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      await connection.query(
+        'UPDATE bookings SET start_time = ?, end_time = ?, notes = ? WHERE booking_id = ?',
+        [startStr, endStr, notes ?? null, booking_id]
+      );
+      if (group_size != null) {
+        await connection.query(
+          'UPDATE booking_rooms SET group_size = ? WHERE booking_id = ?',
+          [group_size, booking_id]
+        );
+      }
+      await connection.commit();
+    } catch (updateErr) {
+      await connection.rollback();
+      throw updateErr;
+    } finally {
+      connection.release();
+    }
+
+    res.json({ message: 'Reservation updated successfully.', booking_id });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Database error.' });
