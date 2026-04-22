@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import './index.css';
 import Navbar from './components/navbar/Navbar';
+import AdminBar from './components/adminBar/AdminBar'; // New component
 import RoomBookingCalendar from './components/roomBookingCalendar/roomBookingCalendar';
 import EquipmentBooking from './components/equipmentBooking/equipmentBooking';
 import AdminPanel from './components/adminPanel/adminPanel';
@@ -18,6 +19,8 @@ function PageShell({ adminSession, onLogin, onLogout, children }) {
                     <img src="../src/images/UNCWLibraryImage.jpg" alt="UNCW Library" />
                 </div>
             </header>
+            {/* Admin Bar - sticky at top */}
+            <AdminBar adminSession={adminSession} onLogout={onLogout} />
             <Navbar adminSession={adminSession} onLogin={onLogin} onLogout={onLogout} />
             <main>
                 {children}
@@ -41,7 +44,7 @@ function Home({ adminSession, onLogin, onLogout }) {
             <section>
                 <hr />
                 <RoomBookingCalendar adminSession={adminSession} />
-                <ReservationStatus/>
+                <ReservationStatus adminSession={adminSession}/>
             </section>
         </PageShell>
     );

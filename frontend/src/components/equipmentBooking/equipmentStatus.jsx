@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import './equipmentStatus.css';
+import '../roomBookingCalendar/reservationStatus.css'; 
 
 const EquipmentStatus = ({ adminSession }) => {
     const isAdminMode = !!adminSession;
@@ -16,7 +16,6 @@ const EquipmentStatus = ({ adminSession }) => {
     const fetchReservations = async () => {
         try {
             setLoading(true);
-            // Fetch all equipment bookings
             const response = await axios.get('/api/equipment-bookings/bookings');
             setReservations(response.data);
         } catch (err) {
@@ -63,7 +62,7 @@ const EquipmentStatus = ({ adminSession }) => {
     };
 
     const getStatusBadge = (status) => {
-        switch(status) {
+        switch(status?.toLowerCase()) {
             case 'approved':
                 return <span className="status-badge status-approved">✓ Approved</span>;
             case 'pending':
@@ -77,95 +76,98 @@ const EquipmentStatus = ({ adminSession }) => {
         }
     };
 
-    if (loading) return <div className="loading">Loading reservations...</div>;
-    if (error) return <div className="error">Error: {error}</div>;
+    const formatDateTime = (dt) => {
+        if (!dt) return '—';
+        return new Date(dt).toLocaleString([], {
+            month: 'short', day: 'numeric', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    };
+
+    if (loading) return <div className="admin-loading">Loading equipment reservations...</div>;
+    if (error) return <div className="admin-error">{error}</div>;
 
     return (
-        <div className="equipment-status-container">
-            <h2>Equipment Reservations</h2>
+        <div className="reservation-status-container">
+            <div className="admin-panel-header">
+                <h2>🖥️ Equipment Reservations</h2>
+                {isAdminMode && <span className="admin-panel-user">Admin Mode</span>}
+            </div>
             
             {reservations.length === 0 ? (
-                <p className="no-reservations">No equipment reservations found.</p>
+                <div className="admin-no-bookings">No equipment reservations found.</div>
             ) : (
-                <div className="reservations-grid">
-                    {reservations.map((reservation) => {
-                        let equipmentNames = [];
-                        try {
-                            equipmentNames = JSON.parse(reservation.equipment_names || '[]');
-                        } catch {
-                            equipmentNames = [];
-                        }
-                        
-                        const userName = `${reservation.first_name || ''} ${reservation.last_name || ''}`.trim() || `UNCW ID: ${reservation.uncw_id}`;
-                        
-                        return (
-                            <div key={reservation.booking_id} className="reservation-card">
-                                <div className="reservation-header">
-                                    <span className="reservation-id">Booking #{reservation.booking_id}</span>
-                                    {getStatusBadge(reservation.status)}
-                                </div>
+                <div className="table-responsive">
+                    <table className="admin-bookings-table">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Equipment</th>
+                                <th>Departments</th>
+                                <th>Booking Date</th>
+                                <th>Return Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {reservations.map((reservation) => {
+                                let equipmentNames = [];
+                                try {
+                                    equipmentNames = JSON.parse(reservation.equipment_names || '[]');
+                                } catch {
+                                    equipmentNames = [];
+                                }
                                 
-                                <div className="reservation-body">
-                                    <p><strong>User:</strong> {userName}</p>
-                                    <p><strong>Email:</strong> {reservation.email || 'N/A'}</p>
-                                    <p><strong>Equipment:</strong> {equipmentNames.join(', ') || 'N/A'}</p>
-                                    <p><strong>Booking Date:</strong> {new Date(reservation.created_at).toLocaleDateString()}</p>
-                                    <p><strong>Return By:</strong> {new Date(reservation.end_time).toLocaleDateString()}</p>
-                                    {reservation.purpose && <p><strong>Purpose:</strong> {reservation.purpose}</p>}
-                                </div>
+                                const isCancelled = reservation.status?.toLowerCase() === 'cancelled';
+                                const isPending = reservation.status?.toLowerCase() === 'pending';
+                                const isApproved = reservation.status?.toLowerCase() === 'approved';
                                 
-                                {isAdminMode && reservation.status !== 'approved' && reservation.status !== 'cancelled' && reservation.status !== 'rejected' && (
-                                    <div className="reservation-actions">
-                                        <button
-                                            className="approve-btn"
-                                            onClick={() => handleApprove(reservation.booking_id)}
-                                            disabled={processingId === reservation.booking_id}
-                                        >
-                                            {processingId === reservation.booking_id ? 'Processing...' : '✓ Approve'}
-                                        </button>
-                                        <button
-                                            className="cancel-btn"
-                                            onClick={() => handleCancel(reservation.booking_id)}
-                                            disabled={processingId === reservation.booking_id}
-                                        >
-                                            {processingId === reservation.booking_id ? 'Processing...' : '✗ Cancel'}
-                                        </button>
-                                    </div>
-                                )}
-                                
-                                {isAdminMode && reservation.status === 'pending' && (
-                                    <div className="reservation-actions">
-                                        <button
-                                            className="approve-btn"
-                                            onClick={() => handleApprove(reservation.booking_id)}
-                                            disabled={processingId === reservation.booking_id}
-                                        >
-                                            {processingId === reservation.booking_id ? 'Processing...' : '✓ Approve'}
-                                        </button>
-                                        <button
-                                            className="cancel-btn"
-                                            onClick={() => handleCancel(reservation.booking_id)}
-                                            disabled={processingId === reservation.booking_id}
-                                        >
-                                            {processingId === reservation.booking_id ? 'Processing...' : '✗ Cancel'}
-                                        </button>
-                                    </div>
-                                )}
-                                
-                                {isAdminMode && reservation.status === 'approved' && (
-                                    <div className="reservation-actions">
-                                        <button
-                                            className="cancel-btn"
-                                            onClick={() => handleCancel(reservation.booking_id)}
-                                            disabled={processingId === reservation.booking_id}
-                                        >
-                                            {processingId === reservation.booking_id ? 'Processing...' : 'Cancel Booking'}
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                                return (
+                                    <tr key={reservation.booking_id} className={isCancelled ? 'row-cancelled' : ''}>
+                                        <td>{reservation.booking_id}</td>
+                                        <td>{equipmentNames.join(', ') || reservation.equipment_list || '—'}</td>
+                                        <td>{reservation.departments || '—'}</td>
+                                        <td>{formatDateTime(reservation.booking_date || reservation.start_time)}</td>
+                                        <td>{formatDateTime(reservation.return_date || reservation.end_time)}</td>
+                                        <td>{getStatusBadge(reservation.status)}</td>
+                                        <td>
+                                            {isCancelled ? (
+                                                <span className="cancelled-label">Cancelled</span>
+                                            ) : isAdminMode && isPending ? (
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <button
+                                                        className="approve-btn"
+                                                        onClick={() => handleApprove(reservation.booking_id)}
+                                                        disabled={processingId === reservation.booking_id}
+                                                    >
+                                                        {processingId === reservation.booking_id ? '...' : 'Approve'}
+                                                    </button>
+                                                    <button
+                                                        className="cancel-btn"
+                                                        onClick={() => handleCancel(reservation.booking_id)}
+                                                        disabled={processingId === reservation.booking_id}
+                                                    >
+                                                        {processingId === reservation.booking_id ? '...' : 'Cancel'}
+                                                    </button>
+                                                </div>
+                                            ) : isAdminMode && isApproved ? (
+                                                <button
+                                                    className="cancel-btn"
+                                                    onClick={() => handleCancel(reservation.booking_id)}
+                                                    disabled={processingId === reservation.booking_id}
+                                                >
+                                                    {processingId === reservation.booking_id ? '...' : 'Cancel'}
+                                                </button>
+                                            ) : (
+                                                <span className="ended-label">—</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
                 </div>
             )}
         </div>

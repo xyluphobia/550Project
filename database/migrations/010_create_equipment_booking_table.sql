@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS equipment_bookings (
     purpose TEXT,
     notes TEXT,
     booking_date DATETIME NOT NULL,
-    status ENUM('active', 'cancelled') DEFAULT 'active',
+    status ENUM('active','pending' , 'cancelled') DEFAULT 'pending',
     cancelled_at DATETIME,
     cancelled_by VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

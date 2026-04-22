@@ -203,7 +203,7 @@ const EquipmentBooking = ({ adminSession }) => {
                     if (isAdminMode && showAdminView) {
                         fetchEquipmentBookings();
                     }
-                }, 2000);
+                }, 200);
             }
         } catch (err) {
             console.error('Error submitting booking:', err);
