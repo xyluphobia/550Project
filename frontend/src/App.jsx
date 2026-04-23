@@ -39,7 +39,7 @@ function Home({ adminSession, onLogin, onLogout }) {
         <PageShell adminSession={adminSession} onLogin={onLogin} onLogout={onLogout}>
             <aside>
                 <h3>Welcome to CSC-550 Booking System</h3>
-                <p>Book rooms and equipment here!</p>
+                <p>The UNCW library holds a variety of study spaces and resources for students.</p>
             </aside>
             <section>
                 <hr />
