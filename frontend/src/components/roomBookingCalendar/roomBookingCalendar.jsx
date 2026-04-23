@@ -27,18 +27,18 @@ const CALENDAR_CONFIG = {
 };
 
 const FALLBACK_BUILDINGS = [
-    { id: 'bldg1', name: 'Discovery Hall', color: '#ff6b6b' },
-    { id: 'bldg2', name: 'Randall Hall', color: '#4AE0BA' },
-    { id: 'bldg3', name: 'Makerstudio', color: '#c26efe' },
+    { id: 'discovery-hall', name: 'Discovery Hall', color: '#ff6b6b' },
+    { id: 'randal-hall', name: 'Randal Hall', color: '#4AE0BA' },
+    { id: 'makerstudio', name: 'Makerstudio', color: '#c26efe' },
 ];
 
 const FALLBACK_ROOMS = [
-    { id: 'discovery-101', name: 'Room 101', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 20, floor: '1' },
-    { id: 'discovery-102', name: 'Room 102', buildingId: 'bldg1', buildingName: 'Discovery Hall', capacity: 15, floor: '1' },
-    { id: 'randall-101', name: 'Classroom A', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 30, floor: '1' },
-    { id: 'randall-201', name: 'Lecture Hall', buildingId: 'bldg2', buildingName: 'Randall Hall', capacity: 100, floor: '2' },
-    { id: 'makerstudio-1', name: '3D Printing Area', buildingId: 'bldg3', buildingName: 'Makerstudio', capacity: 4, floor: '1' },
-    { id: 'makerstudio-2', name: 'Electronics Lab', buildingId: 'bldg3', buildingName: 'Makerstudio', capacity: 6, floor: '1' },
+    { id: 'discovery-101', name: 'Room 101', buildingId: 'discovery-hall', buildingName: 'Discovery Hall', capacity: 20, floor: '1' },
+    { id: 'discovery-102', name: 'Room 102', buildingId: 'discovery-hall', buildingName: 'Discovery Hall', capacity: 15, floor: '1' },
+    { id: 'randal-101', name: 'Classroom A', buildingId: 'randal-hall', buildingName: 'Randal Hall', capacity: 30, floor: '1' },
+    { id: 'randal-201', name: 'Lecture Hall', buildingId: 'randal-hall', buildingName: 'Randal Hall', capacity: 100, floor: '2' },
+    { id: 'makerstudio-1', name: '3D Printing Area', buildingId: 'makerstudio', buildingName: 'Makerstudio', capacity: 4, floor: '1' },
+    { id: 'makerstudio-2', name: 'Electronics Lab', buildingId: 'makerstudio', buildingName: 'Makerstudio', capacity: 6, floor: '1' },
 ];
 
 const parseSafeDate = (dateStr) => {
@@ -134,8 +134,6 @@ const RoomBookingCalendar = ({ adminSession }) => {
     }, [rooms]);
 
     // Generate background time slots for the calendar.
-    // This is memoized to prevent re-calculation on every render,
-    // and to ensure it's always in sync with the latest state.
     const calendarSlots = useMemo(() => {
         if (!filteredRooms.length || !selectedDate) return [];
 
@@ -219,7 +217,6 @@ const RoomBookingCalendar = ({ adminSession }) => {
 
                 const requests = [axios.get(ROOMS_API_URL, { params: buildRoomParams() })];
                 if (isInitialLoad.current) {
-                    // Add cache-busting timestamp to prevent the browser from serving stale data
                     const noCacheConfig = { params: { _t: Date.now() }, headers: { 'Cache-Control': 'no-cache' } };
                     requests.push(axios.get(BOOKINGS_API_URL, noCacheConfig));
                     requests.push(axios.get(BLOCKS_API_URL, noCacheConfig));
@@ -230,24 +227,35 @@ const RoomBookingCalendar = ({ adminSession }) => {
 
                 // Transform API rooms to component format
                 const apiRooms = roomsResponse.data;
+                
+                // Log the API response for debugging
+                console.log('API Rooms response:', apiRooms);
+                
+                // Extract unique building names and create building objects
                 const uniqueBuildings = [...new Set(apiRooms.map(room => room.building_name))];
                 const transformedBuildings = uniqueBuildings.map((buildingName, index) => ({
-                    id: `bldg${index + 1}`,
+                    id: buildingName.replace(/\s+/g, '-').toLowerCase(), // Create consistent ID from name
                     name: buildingName,
                     color: FALLBACK_BUILDINGS[index % FALLBACK_BUILDINGS.length]?.color || CALENDAR_CONFIG.COLORS.DEFAULT_EVENT
                 }));
 
+                // Transform rooms with proper building ID mapping
                 const transformedRooms = apiRooms.map(room => {
                     const building = transformedBuildings.find(b => b.name === room.building_name);
                     return {
-                        id: room.room_id.toString(),
+                        id: room.room_id.toString(), // Keep as string for frontend
                         name: room.room_code,
-                        buildingId: building?.id || '',
+                        buildingId: building?.id || room.building_name.replace(/\s+/g, '-').toLowerCase(),
                         buildingName: room.building_name,
                         capacity: room.room_capacity,
-                        floor: '' // Not available in DB currently
+                        floor: room.floor || '1', // Use floor from DB or default to '1'
+                        has_whiteboard: room.has_whiteboard,
+                        has_monitor: room.has_monitor
                     };
                 });
+
+                console.log('Transformed buildings:', transformedBuildings);
+                console.log('Transformed rooms:', transformedRooms);
 
                 setBuildings(transformedBuildings);
                 setRooms(transformedRooms);
@@ -275,8 +283,6 @@ const RoomBookingCalendar = ({ adminSession }) => {
                                         start: startDate.toISOString(),
                                         end: endDate.toISOString(),
                                         title: booking.notes || 'Booked',
-                                        // This color is for the event itself, which is mostly hidden. The
-                                        // main coloring happens via background events in generateTimeSlots.
                                         color: isCurrentUserBooking ? CALENDAR_CONFIG.COLORS.YOUR_BOOKING : CALENDAR_CONFIG.COLORS.BOOKED,
                                         extendedProps: {
                                             isBooking: true,
@@ -309,13 +315,24 @@ const RoomBookingCalendar = ({ adminSession }) => {
                 setError('Failed to load data from server. Using fallback data.');
                 setRooms(FALLBACK_ROOMS);
                 setFilteredRooms(FALLBACK_ROOMS);
+                setBuildings(FALLBACK_BUILDINGS);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchData();
-    }, [appliedFilters]);
+    }, [appliedFilters, adminSession]);
+
+    // Filter rooms when building selection changes
+    useEffect(() => {
+        if (selectedBuilding) {
+            const filtered = rooms.filter(room => room.buildingId === selectedBuilding);
+            setFilteredRooms(filtered);
+        } else {
+            setFilteredRooms(rooms);
+        }
+    }, [selectedBuilding, rooms]);
 
     // Transform rooms into resources for FullCalendar
     const resources = useMemo(() => {
@@ -620,7 +637,6 @@ const RoomBookingCalendar = ({ adminSession }) => {
         );
         if (hasOverlap) return false;
 
-        // Admins can select over blocked slots (to block on top of existing blocks)
         if (isAdminMode) return true;
 
         const isBlocked = blocks.some(block =>

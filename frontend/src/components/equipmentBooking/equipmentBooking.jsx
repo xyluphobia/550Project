@@ -1,11 +1,11 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import axios from 'axios';
 import departmentEquipment from './departmentEquipment';
-import {EmailJSConfigEquipment} from '../EmailJS/emailJSConfiguration';
 import './equipmentBooking.css';
 
-const EquipmentBooking = () => {
+const EquipmentBooking = ({ adminSession }) => {
+    const isAdminMode = !!adminSession;
+    
     const [equipmentList, setEquipmentList] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState(null);
@@ -14,24 +14,60 @@ const EquipmentBooking = () => {
     const [formData, setFormData] = React.useState({});
     const [selectedDepartments, setSelectedDepartments] = React.useState([]);
     const [selectedEquipment, setSelectedEquipment] = React.useState({});
+    
+    // Admin state
+    const [showAdminView, setShowAdminView] = React.useState(false);
+    const [equipmentBookings, setEquipmentBookings] = React.useState([]);
+    const [loadingBookings, setLoadingBookings] = React.useState(false);
+    const [selectedBookingForCancel, setSelectedBookingForCancel] = React.useState(null);
+    const [showCancelDialog, setShowCancelDialog] = React.useState(false);
+    
+    // Status change state
+    const [selectedStatusBooking, setSelectedStatusBooking] = React.useState(null);
+    const [showStatusDialog, setShowStatusDialog] = React.useState(false);
+    const [newStatus, setNewStatus] = React.useState('');
 
     React.useEffect(() => {
-        axios.get('/api/equipment')
-            .then(response => {
-                if (Array.isArray(response.data)) {
-                    setEquipmentList(response.data);
-                } else {
-                    console.error('Expected array but got:', typeof response.data);
-                    setEquipmentList([]);
-                }
-                setLoading(false);
-            })
-            .catch(error => {
-                console.error('Error fetching equipment data:', error);
-                setEquipmentList([]);
-                setLoading(false);
-            });
+        fetchEquipment();
     }, []);
+
+    const fetchEquipment = async () => {
+        try {
+            const response = await axios.get('/api/equipment');
+            if (Array.isArray(response.data)) {
+                setEquipmentList(response.data);
+            } else {
+                setEquipmentList([]);
+            }
+        } catch (error) {
+            console.error('Error fetching equipment:', error);
+            setError('Failed to load equipment');
+            setEquipmentList([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchEquipmentBookings = React.useCallback(async () => {
+        if (!isAdminMode) return;
+        
+        setLoadingBookings(true);
+        try {
+            const response = await axios.get('/api/equipment-bookings/bookings');
+            setEquipmentBookings(response.data);
+        } catch (err) {
+            console.error('Error fetching equipment bookings:', err);
+            setEquipmentBookings([]);
+        } finally {
+            setLoadingBookings(false);
+        }
+    }, [isAdminMode]);
+
+    React.useEffect(() => {
+        if (isAdminMode && showAdminView) {
+            fetchEquipmentBookings();
+        }
+    }, [isAdminMode, showAdminView, fetchEquipmentBookings]);
 
     const handleRentClick = () => {
         if (selectedDepartments.length === 0) {
@@ -51,10 +87,8 @@ const EquipmentBooking = () => {
     const handleDepartmentCheckbox = (departmentID) => {
         setSelectedDepartments(prev => {
             if (prev.includes(departmentID)) {
-                // Remove department and its equipment selections
                 const newSelection = prev.filter(id => id !== departmentID);
                 const newSelectedEquipment = { ...selectedEquipment };
-                // Clear equipment for this department
                 Object.keys(newSelectedEquipment).forEach(key => {
                     if (key.startsWith(departmentID)) {
                         delete newSelectedEquipment[key];
@@ -80,7 +114,6 @@ const EquipmentBooking = () => {
             [equipmentKey]: checked ? equipmentName : undefined
         }));
         
-        // Remove form data if equipment is unchecked
         if (!checked) {
             const newFormData = { ...formData };
             const dept = departmentEquipment[departmentID];
@@ -118,66 +151,95 @@ const EquipmentBooking = () => {
     const handleSubmitForm = async (e) => {
         e.preventDefault();
         
-        // Check if at least one equipment is selected
         const hasSelectedEquipment = Object.values(selectedEquipment).some(value => value !== undefined);
         if (!hasSelectedEquipment) {
             alert('Please select at least one piece of equipment to rent.');
             return;
         }
         
-        // Validate required fields for selected equipment
-        let isValid = true;
-        let missingFields = [];
+        // Validate user info fields
+        if (!formData.fullName || !formData.uncwId || !formData.email) {
+            alert('Please fill in all required user fields: Name, UNCW ID, and Email');
+            return;
+        }
+        
+        // Collect equipment IDs and names
+        const equipmentIds = [];
+        const equipmentNames = [];
         
         Object.keys(selectedEquipment).forEach(key => {
             if (selectedEquipment[key]) {
                 const [departmentID, equipmentID] = key.split('_');
-                const dept = departmentEquipment[departmentID];
-                const equipment = dept?.equipment.find(eq => eq.id === parseInt(equipmentID));
-                if (equipment && equipment.fields) {
-                    equipment.fields.forEach(field => {
-                        const value = formData[field.name];
-                        if (field.required && (!value || (Array.isArray(value) && value.length === 0))) {
-                            isValid = false;
-                            missingFields.push(`${equipment.name}: ${field.label}`);
-                        }
-                    });
-                }
+                equipmentIds.push(parseInt(equipmentID));
+                equipmentNames.push(selectedEquipment[key]);
             }
         });
         
-        if (!isValid) {
-            alert(`Please fill in the following required fields:\n${missingFields.join('\n')}`);
-            return;
-        }
-        
-        // Prepare email data
-        const emailData = {
-            departments: selectedDepartments.map(dept => {
-                const deptInfo = departmentEquipment[dept];
-                return {
-                    name: deptInfo.name,
-                    equipment: Object.keys(selectedEquipment)
-                        .filter(key => key.startsWith(dept))
-                        .map(key => {
-                            const [, equipmentID] = key.split('_');
-                            return deptInfo.equipment.find(eq => eq.id === parseInt(equipmentID))?.name;
-                        })
-                        .filter(name => name)
-                };
-            }),
-            userInfo: formData
+        // Prepare booking data for backend
+        const bookingData = {
+            uncw_id: parseInt(formData.uncwId),
+            first_name: formData.fullName.split(' ')[0] || '',
+            last_name: formData.fullName.split(' ').slice(1).join(' ') || '',
+            email: formData.email,
+            phone: formData.phone || '',
+            equipment_ids: equipmentIds,
+            equipment_names: equipmentNames,
+            departments: selectedDepartments,
+            return_date: formData.returnDate || null,
+            purpose: formData.purpose || '',
+            notes: JSON.stringify(formData)
         };
         
-        console.log('Booking submitted:', emailData);
+        console.log('Submitting booking:', bookingData);
         
-        // Here you would send the email using EmailJS
-        setBookingSuccess(true);
-        alert('Booking request submitted successfully!');
-        setTimeout(() => {
-            handleCloseForm();
-            setSelectedDepartments([]);
-        }, 2000);
+        try {
+            const response = await axios.post('/api/equipment-bookings/bookings', bookingData);            
+            if (response.data) {
+                alert('Equipment booking submitted successfully!');
+                setBookingSuccess(true);
+                setTimeout(() => {
+                    handleCloseForm();
+                    setSelectedDepartments([]);
+                    if (isAdminMode && showAdminView) {
+                        fetchEquipmentBookings();
+                    }
+                }, 200);
+            }
+        } catch (err) {
+            console.error('Error submitting booking:', err);
+            alert('Failed to submit booking: ' + (err.response?.data?.error || err.message));
+        }
+    };
+
+    const handleCancelBooking = async (bookingId) => {
+        try {
+            await axios.patch(`/api/equipment-bookings/bookings/${bookingId}/cancel`, {
+                admin_uncw_id: adminSession?.uncw_id
+            });
+            alert('Booking cancelled successfully!');
+            fetchEquipmentBookings();
+            setShowCancelDialog(false);
+            setSelectedBookingForCancel(null);
+        } catch (err) {
+            console.error('Error cancelling booking:', err);
+            alert('Failed to cancel booking: ' + (err.response?.data?.error || err.message));
+        }
+    };
+
+    const handleStatusChange = async (bookingId, status) => {
+        try {
+            await axios.patch(`/api/equipment-bookings/bookings/${bookingId}/status`, {
+                admin_uncw_id: adminSession?.uncw_id,
+                status: status
+            });
+            alert(`Booking status changed to ${status}!`);
+            fetchEquipmentBookings();
+            setShowStatusDialog(false);
+            setSelectedStatusBooking(null);
+        } catch (err) {
+            console.error('Error changing status:', err);
+            alert('Failed to change status: ' + (err.response?.data?.error || err.message));
+        }
     };
 
     const renderEquipmentInForm = () => {
@@ -300,25 +362,343 @@ const EquipmentBooking = () => {
         );
     };
 
-    if (error) {
+    const renderAdminBookingsView = () => {
+        if (!isAdminMode || !showAdminView) return null;
+
+        const formatDateTime = (dt) => {
+            if (!dt) return '—';
+            return new Date(dt).toLocaleString([], {
+                month: 'short', day: 'numeric', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        };
+
         return (
-            <div className="error-container">
-                <p className="error-message">Error loading equipment: {error.message}</p>
-                <p>Nothing available at the moment.</p>
-                <button onClick={() => window.location.reload()}>Reload</button>
+            <div className="admin-equipment-view">
+                <div className="admin-view-header">
+                    <h3>Equipment Reservations</h3>
+                    <button 
+                        className="close-admin-view-btn"
+                        onClick={() => setShowAdminView(false)}
+                    >
+                        Back to Booking
+                    </button>
+                </div>
+                
+                {loadingBookings ? (
+                    <div className="admin-loading">Loading reservations...</div>
+                ) : (
+                    <table className="admin-equipment-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>User</th>
+                                <th>Equipment</th>
+                                <th>Departments</th>
+                                <th>Booking Date</th>
+                                <th>Return Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {equipmentBookings.length === 0 && (
+                                <tr>
+                                    <td colSpan="8" className="admin-no-bookings">No equipment reservations found.</td>
+                                </tr>
+                            )}
+                            {equipmentBookings.map(booking => {
+                                let equipmentNames = [];
+                                try {
+                                    equipmentNames = JSON.parse(booking.equipment_names || '[]');
+                                } catch {
+                                    equipmentNames = [];
+                                }
+                                
+                                let departments = [];
+                                try {
+                                    departments = JSON.parse(booking.departments || '[]');
+                                } catch {
+                                    departments = [];
+                                }
+                                
+                                return (
+                                    <tr key={booking.booking_id} className={booking.status === 'cancelled' ? 'row-cancelled' : ''}>
+                                        <td>{booking.booking_id}</td>
+                                        <td>
+                                            {booking.first_name || booking.last_name
+                                                ? `${booking.first_name || ''} ${booking.last_name || ''}`.trim()
+                                                : booking.uncw_id}
+                                            <br />
+                                            <span className="admin-sub">ID: {booking.uncw_id}</span>
+                                            <br />
+                                            <span className="admin-sub">{booking.email}</span>
+                                        </td>
+                                        <td>{equipmentNames.join(', ') || '—'}</td>
+                                        <td>{departments.join(', ') || '—'}</td>
+                                        <td>{formatDateTime(booking.created_at)}</td>
+                                        <td>{formatDateTime(booking.end_time)}</td>
+                                        <td>
+                                            <span className={`status-badge status-${booking.status || 'active'}`}>
+                                                {booking.status || 'active'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div className="admin-action-buttons">
+                                                {booking.status !== 'cancelled' && (
+                                                    <>
+                                                        <button
+                                                            className="status-btn status-active-btn"
+                                                            onClick={() => {
+                                                                setSelectedStatusBooking(booking);
+                                                                setNewStatus('active');
+                                                                setShowStatusDialog(true);
+                                                            }}
+                                                            title="Set to Active"
+                                                        >
+                                                            ✓ Active
+                                                        </button>
+                                                        <button
+                                                            className="status-btn status-pending-btn"
+                                                            onClick={() => {
+                                                                setSelectedStatusBooking(booking);
+                                                                setNewStatus('pending');
+                                                                setShowStatusDialog(true);
+                                                            }}
+                                                            title="Set to Pending"
+                                                        >
+                                                            ⏳ Pending
+                                                        </button>
+                                                        <button
+                                                            className="status-btn status-completed-btn"
+                                                            onClick={() => {
+                                                                setSelectedStatusBooking(booking);
+                                                                setNewStatus('completed');
+                                                                setShowStatusDialog(true);
+                                                            }}
+                                                            title="Set to Completed"
+                                                        >
+                                                            ✔ Completed
+                                                        </button>
+                                                        <button
+                                                            className="cancel-btn"
+                                                            onClick={() => {
+                                                                setSelectedBookingForCancel(booking);
+                                                                setShowCancelDialog(true);
+                                                            }}
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {booking.status === 'cancelled' && (
+                                                    <span className="cancelled-label">Cancelled</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                )}
             </div>
         );
-    }   
+    };
+
+    const renderCancelDialog = () => {
+        if (!showCancelDialog || !selectedBookingForCancel) return null;
+
+        const { booking_id, first_name, last_name, uncw_id, equipment_names } = selectedBookingForCancel;
+        let equipmentList = [];
+        try {
+            equipmentList = JSON.parse(equipment_names || '[]');
+        } catch {
+            equipmentList = [];
+        }
+        
+        const name = (first_name || last_name)
+            ? `${first_name || ''} ${last_name || ''}`.trim()
+            : `UNCW ID ${uncw_id}`;
+
+        return (
+            <div className="booking-form-overlay" onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                    setShowCancelDialog(false);
+                    setSelectedBookingForCancel(null);
+                }
+            }}>
+                <div className="booking-form block-edit-dialog">
+                    <button
+                        className="block-edit-close-btn"
+                        onClick={() => {
+                            setShowCancelDialog(false);
+                            setSelectedBookingForCancel(null);
+                        }}
+                        aria-label="Close"
+                    >
+                        ×
+                    </button>
+                    <h2>Cancel Equipment Booking</h2>
+                    <div className="booking-location">
+                        <p><strong>Booking #{booking_id}</strong></p>
+                        <p><strong>User:</strong> {name}</p>
+                        <p><strong>Equipment:</strong> {equipmentList.join(', ')}</p>
+                        <p><strong>Date:</strong> {new Date(selectedBookingForCancel.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <p className="block-info-text" style={{ borderColor: '#b66000', background: '#fff8ee' }}>
+                        This will cancel the equipment reservation and make it available for others.
+                    </p>
+                    <div className="form-buttons" style={{ marginTop: '16px' }}>
+                        <button type="button" onClick={() => {
+                            setShowCancelDialog(false);
+                            setSelectedBookingForCancel(null);
+                        }}>
+                            Keep Booking
+                        </button>
+                        <button
+                            type="button"
+                            className="block-submit-btn"
+                            onClick={() => handleCancelBooking(selectedBookingForCancel.booking_id)}
+                        >
+                            Cancel Booking
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderStatusDialog = () => {
+        if (!showStatusDialog || !selectedStatusBooking) return null;
+
+        const { booking_id, first_name, last_name, equipment_names } = selectedStatusBooking;
+        let equipmentList = [];
+        try {
+            equipmentList = JSON.parse(equipment_names || '[]');
+        } catch {
+            equipmentList = [];
+        }
+        
+        const name = (first_name || last_name)
+            ? `${first_name || ''} ${last_name || ''}`.trim()
+            : `UNCW ID ${selectedStatusBooking.uncw_id}`;
+
+        const statusOptions = ['active', 'pending', 'completed', 'cancelled'];
+        const statusColors = {
+            active: '#4CAF50',
+            pending: '#FF9800',
+            completed: '#2196F3',
+            cancelled: '#f44336'
+        };
+
+        return (
+            <div className="booking-form-overlay" onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                    setShowStatusDialog(false);
+                    setSelectedStatusBooking(null);
+                }
+            }}>
+                <div className="booking-form status-dialog">
+                    <button
+                        className="block-edit-close-btn"
+                        onClick={() => {
+                            setShowStatusDialog(false);
+                            setSelectedStatusBooking(null);
+                        }}
+                        aria-label="Close"
+                    >
+                        ×
+                    </button>
+                    <h2>Change Booking Status</h2>
+                    <div className="booking-location">
+                        <p><strong>Booking #{booking_id}</strong></p>
+                        <p><strong>User:</strong> {name}</p>
+                        <p><strong>Equipment:</strong> {equipmentList.join(', ')}</p>
+                    </div>
+                    
+                    <div className="status-options">
+                        <h3>Select New Status:</h3>
+                        <div className="status-buttons">
+                            {statusOptions.map(option => (
+                                <button
+                                    key={option}
+                                    className={`status-option-btn ${newStatus === option ? 'selected' : ''}`}
+                                    style={{ backgroundColor: statusColors[option] }}
+                                    onClick={() => setNewStatus(option)}
+                                >
+                                    {option.toUpperCase()}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="form-buttons" style={{ marginTop: '20px' }}>
+                        <button type="button" onClick={() => {
+                            setShowStatusDialog(false);
+                            setSelectedStatusBooking(null);
+                        }}>
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            className="submit-booking-btn"
+                            onClick={() => handleStatusChange(selectedStatusBooking.booking_id, newStatus)}
+                        >
+                            Update Status
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const handleResetAll = () => {
+        setSelectedDepartments([]);
+        setSelectedEquipment({});
+        setFormData({});
+    };
 
     if (loading) {
         return <p>Loading equipment...</p>;
     }
 
+    if (error) {
+        return (
+            <div className="error-container">
+                <p className="error-message">Error loading equipment: {error}</p>
+                <button onClick={fetchEquipment}>Retry</button>
+            </div>
+        );
+    }
+
+    // Show admin view if active
+    if (isAdminMode && showAdminView) {
+        return (
+            <div className="equipment-booking-container">
+                {renderAdminBookingsView()}
+                {renderCancelDialog()}
+                {renderStatusDialog()}
+            </div>
+        );
+    }
+
     return (
         <div className="equipment-booking-container">
+            {isAdminMode && (
+                <div className="admin-mode-header">
+                    <button 
+                        className="admin-view-bookings-btn"
+                        onClick={() => setShowAdminView(true)}
+                    >
+                        View All Equipment Reservations
+                    </button>
+                    <span className="admin-badge">Admin Mode</span>
+                </div>
+            )}
+            
             <p>All equipment is located in the library.</p>
             <div className="equipment-booking-page">
-                {/* HD Section */}
                 <div className='hd-equipment department-card'>
                     <h2>Help Desk (HD)</h2>
                     <div className="department-checkbox">
@@ -340,7 +720,6 @@ const EquipmentBooking = () => {
                     </ul>
                 </div>
 
-                {/* TAC Section */}
                 <div className='tac-equipment department-card'>
                     <h2>Technical Assistance Center (TAC)</h2>
                     <div className="department-checkbox">
@@ -361,7 +740,6 @@ const EquipmentBooking = () => {
                     </ul>
                 </div>
 
-                {/* MS Section */}
                 <div className='ms-equipment department-card'>
                     <h2>Makerstudio (MS)</h2>
                     <div className="department-checkbox">
@@ -390,11 +768,7 @@ const EquipmentBooking = () => {
                         Continue to Equipment Selection ({selectedDepartments.length}/3 departments)
                     </button>
                     
-                    <button className="reload-button" onClick={() => {
-                        setSelectedDepartments([]);
-                        setSelectedEquipment({});
-                        setFormData({});
-                    }}>
+                    <button className="reload-button" onClick={handleResetAll}>
                         Reset All
                     </button>
                 </div>
@@ -402,16 +776,65 @@ const EquipmentBooking = () => {
 
             {/* Modal Form Popup */}
             {showForm && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h2>Equipment Booking Request</h2>
-                            <button className="close-button" onClick={handleCloseForm}>×</button>
-                        </div>
+                <div className="booking-form-overlay">
+                    <div className="booking-form equipment-booking-form">
+                        <button
+                            className="booking-form-close-btn"
+                            onClick={handleCloseForm}
+                            aria-label="Close"
+                        >
+                            ×
+                        </button>
+                        <h2>Equipment Booking Request</h2>
                         <form onSubmit={handleSubmitForm}>
+                            {/* User Information Section */}
+                            <div className="user-info-section">
+                                <h3>Your Information</h3>
+                                <input
+                                    type="text"
+                                    placeholder="Full Name *"
+                                    value={formData.fullName || ''}
+                                    onChange={(e) => handleInputChange('fullName', e.target.value)}
+                                    required
+                                />
+                                <input
+                                    type="number"
+                                    placeholder="UNCW ID *"
+                                    value={formData.uncwId || ''}
+                                    onChange={(e) => handleInputChange('uncwId', e.target.value)}
+                                    required
+                                />
+                                <input
+                                    type="email"
+                                    placeholder="Email Address *"
+                                    value={formData.email || ''}
+                                    onChange={(e) => handleInputChange('email', e.target.value)}
+                                    required
+                                />
+                                <input
+                                    type="tel"
+                                    placeholder="Phone Number (Optional)"
+                                    value={formData.phone || ''}
+                                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                                />
+                                <input
+                                    type="date"
+                                    placeholder="Expected Return Date"
+                                    value={formData.returnDate || ''}
+                                    onChange={(e) => handleInputChange('returnDate', e.target.value)}
+                                />
+                                <textarea
+                                    placeholder="Purpose of Equipment Use (Optional)"
+                                    value={formData.purpose || ''}
+                                    onChange={(e) => handleInputChange('purpose', e.target.value)}
+                                    rows="3"
+                                />
+                            </div>
+                            
                             {renderEquipmentInForm()}
                             {renderDynamicFormFields()}
-                            <div className="form-actions">
+                            
+                            <div className="form-buttons">
                                 <button type="submit" className="submit-button">
                                     Submit Booking Request
                                 </button>
@@ -423,6 +846,9 @@ const EquipmentBooking = () => {
                     </div>
                 </div>
             )}
+            
+            {renderCancelDialog()}
+            {renderStatusDialog()}
         </div>
     );
 };

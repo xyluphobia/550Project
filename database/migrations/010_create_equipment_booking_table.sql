@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS equipment_bookings (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    uncw_id VARCHAR(50) NOT NULL,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    equipment_ids TEXT,
+    equipment_names TEXT,
+    departments TEXT,
+    return_date DATETIME,
+    purpose TEXT,
+    notes TEXT,
+    booking_date DATETIME NOT NULL,
+    status ENUM('active','pending' , 'cancelled') DEFAULT 'pending',
+    cancelled_at DATETIME,
+    cancelled_by VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_uncw_id (uncw_id),
+    INDEX idx_status (status),
+    INDEX idx_booking_date (booking_date)
+);

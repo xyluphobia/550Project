@@ -127,7 +127,462 @@
     opacity: 0.6;
 }
 
-/* Responsive Design */
+/* ==================== */
+/* ROOM BOOKING MODAL STYLES (Added) */
+/* ==================== */
+
+/* Modal Overlay - matches room booking pattern */
+.booking-form-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Booking Form - matches room booking pattern */
+.booking-form {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 650px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Close button */
+.booking-form-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #999;
+    transition: color 0.3s ease;
+    line-height: 1;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+}
+
+.booking-form-close-btn:hover {
+    color: #333;
+}
+
+.booking-form h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    border-bottom: 2px solid #4CAF50;
+    padding-bottom: 10px;
+}
+
+.booking-form h3 {
+    margin: 20px 0 10px 0;
+    color: #555;
+    font-size: 1.1rem;
+}
+
+/* User Info Section */
+.user-info-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}
+
+.user-info-section h3 {
+    margin-top: 0;
+    color: #2196F3;
+}
+
+.user-info-section input,
+.user-info-section textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.user-info-section input:focus,
+.user-info-section textarea:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.2);
+}
+
+/* Equipment Selection in Modal (updated for room booking style) */
+.equipment-selection-section {
+    margin-bottom: 25px;
+}
+
+.equipment-selection-section h3 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.department-equipment-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}
+
+.department-equipment-section h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #4CAF50;
+}
+
+.equipment-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.equipment-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 5px 10px;
+    background-color: white;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.equipment-checkbox-label:hover {
+    background-color: #f0f0f0;
+}
+
+.equipment-checkbox-label input[type="checkbox"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+
+/* Equipment Info Form (updated) */
+.equipment-info-section {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 2px solid #f0f0f0;
+}
+
+.equipment-info-section h3 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.equipment-form-group {
+    margin-bottom: 25px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}
+
+.equipment-form-group h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #ff9800;
+}
+
+.form-field {
+    margin-bottom: 15px;
+}
+
+.form-field label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #555;
+}
+
+.form-field input,
+.form-field textarea,
+.form-field select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.form-field input:focus,
+.form-field textarea:focus,
+.form-field select:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.2);
+}
+
+.form-field textarea {
+    resize: vertical;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 5px;
+}
+
+.checkbox-group label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+/* Form Buttons - matches room booking pattern */
+.form-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.form-buttons button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.form-buttons button:first-child {
+    background-color: #f44336;
+    color: white;
+}
+
+.form-buttons button:first-child:hover {
+    background-color: #da190b;
+}
+
+.submit-button,
+.submit-booking-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.submit-button:hover,
+.submit-booking-btn:hover {
+    background-color: #45a049;
+    transform: translateY(-1px);
+}
+
+.cancel-button {
+    background-color: #f44336;
+    color: white;
+}
+
+.cancel-button:hover {
+    background-color: #da190b;
+}
+
+/* Admin mode header styles */
+.admin-mode-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+}
+
+.admin-view-bookings-btn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.admin-view-bookings-btn:hover {
+    background-color: #45a049;
+    transform: translateY(-1px);
+}
+
+.admin-badge {
+    background-color: #ff9800;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Admin equipment view styles */
+.admin-equipment-view {
+    padding: 20px;
+}
+
+.admin-view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #eee;
+}
+
+.admin-view-header h3 {
+    margin: 0;
+    color: #333;
+}
+
+.close-admin-view-btn {
+    background-color: #6c757d;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.close-admin-view-btn:hover {
+    background-color: #5a6268;
+}
+
+.admin-equipment-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.admin-equipment-table th,
+.admin-equipment-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.admin-equipment-table th {
+    background-color: #f5f5f5;
+    font-weight: 600;
+    color: #333;
+}
+
+.admin-equipment-table tr:hover {
+    background-color: #f9f9f9;
+}
+
+.admin-equipment-table .row-cancelled {
+    background-color: #fef5f5;
+    opacity: 0.7;
+}
+
+.admin-sub {
+    font-size: 11px;
+    color: #666;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status-active {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.status-cancelled {
+    background-color: #f44336;
+    color: white;
+}
+
+.cancelled-label {
+    color: #999;
+    font-style: italic;
+}
+
+.admin-no-bookings {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+}
+
+.admin-loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+/* Cancel button in admin table */
+.cancel-btn {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.cancel-btn:hover:not(:disabled) {
+    background-color: #da190b;
+    transform: translateY(-1px);
+}
+
+.cancel-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* Responsive adjustments */
 @media (max-width: 768px) {
     .equipment-booking-page {
         grid-template-columns: 1fr;
@@ -156,9 +611,32 @@
     .reload-button {
         width: 100%;
     }
+    
+    .booking-form {
+        padding: 20px;
+        width: 95%;
+    }
+    
+    .admin-equipment-table {
+        font-size: 12px;
+    }
+    
+    .admin-equipment-table th,
+    .admin-equipment-table td {
+        padding: 8px;
+    }
+    
+    .admin-mode-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .admin-view-bookings-btn {
+        width: 100%;
+    }
 }
 
-/* Modal Styles (keep as before) */
+/* Keep original modal styles for backward compatibility */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -190,175 +668,4 @@
     margin-bottom: 20px;
     padding-bottom: 10px;
     border-bottom: 2px solid #f0f0f0;
-}
-
-.close-button {
-    background: none;
-    border: none;
-    font-size: 28px;
-    cursor: pointer;
-    color: #999;
-    line-height: 1;
-}
-
-.close-button:hover {
-    color: #333;
-}
-
-/* Equipment Selection in Modal */
-.equipment-selection-section {
-    margin-bottom: 25px;
-}
-
-.equipment-selection-section h3 {
-    color: #333;
-    margin-bottom: 15px;
-}
-
-.department-equipment-section {
-    margin-bottom: 20px;
-    padding: 15px;
-    background-color: #f9f9f9;
-    border-radius: 4px;
-}
-
-.department-equipment-section h4 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    color: #2196F3;
-}
-
-.equipment-checkboxes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-}
-
-.equipment-checkbox-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    padding: 5px 10px;
-    background-color: white;
-    border-radius: 4px;
-    border: 1px solid #ddd;
-}
-
-.equipment-checkbox-label:hover {
-    background-color: #f0f0f0;
-}
-
-.equipment-checkbox-label input[type="checkbox"] {
-    cursor: pointer;
-    width: 16px;
-    height: 16px;
-}
-
-/* Equipment Info Form */
-.equipment-info-section {
-    margin-top: 25px;
-    padding-top: 20px;
-    border-top: 2px solid #f0f0f0;
-}
-
-.equipment-info-section h3 {
-    color: #333;
-    margin-bottom: 15px;
-}
-
-.equipment-form-group {
-    margin-bottom: 25px;
-    padding: 15px;
-    background-color: #f9f9f9;
-    border-radius: 4px;
-}
-
-.equipment-form-group h4 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    color: #4CAF50;
-}
-
-.form-field {
-    margin-bottom: 15px;
-}
-
-.form-field label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
-    color: #555;
-}
-
-.form-field input,
-.form-field textarea {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    font-family: inherit;
-}
-
-.form-field input:focus,
-.form-field textarea:focus {
-    outline: none;
-    border-color: #2196F3;
-}
-
-.form-field textarea {
-    resize: vertical;
-}
-
-.checkbox-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    margin-top: 5px;
-}
-
-.checkbox-group label {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-weight: normal;
-    cursor: pointer;
-}
-
-.form-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 25px;
-    padding-top: 20px;
-    border-top: 1px solid #f0f0f0;
-}
-
-.submit-button,
-.cancel-button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.submit-button {
-    background-color: #4CAF50;
-    color: white;
-}
-
-.submit-button:hover {
-    background-color: #45a049;
-}
-
-.cancel-button {
-    background-color: #f44336;
-    color: white;
-}
-
-.cancel-button:hover {
-    background-color: #da190b;
 }

@@ -1,8 +1,162 @@
-.equipment-status {
-    justify-content: center;
-    border: 1px solid #ccc;
+.equipment-status-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.equipment-status-container h2 {
+    color: #333;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #4CAF50;
+}
+
+.no-reservations {
+    text-align: center;
+    color: #666;
+    padding: 40px;
+    background: #f9f9f9;
     border-radius: 8px;
-    background-color: #f9f9f9;
-    padding: 1rem;
-    margin-top: 2rem;
+}
+
+.loading, .error {
+    text-align: center;
+    padding: 40px;
+    font-size: 16px;
+}
+
+.error {
+    color: #f44336;
+}
+
+.reservations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 20px;
+}
+
+.reservation-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.reservation-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.reservation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.reservation-id {
+    font-weight: bold;
+    color: #333;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-approved {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.status-pending {
+    background-color: #FF9800;
+    color: white;
+}
+
+.status-rejected {
+    background-color: #f44336;
+    color: white;
+}
+
+.status-cancelled {
+    background-color: #999;
+    color: white;
+}
+
+.reservation-body {
+    padding: 15px;
+}
+
+.reservation-body p {
+    margin: 8px 0;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.reservation-body strong {
+    color: #555;
+    min-width: 100px;
+    display: inline-block;
+}
+
+.reservation-actions {
+    padding: 15px;
+    background: #fafafa;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    gap: 10px;
+}
+
+.approve-btn, .cancel-btn {
+    flex: 1;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.approve-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.approve-btn:hover:not(:disabled) {
+    background-color: #45a049;
+    transform: translateY(-1px);
+}
+
+.cancel-btn {
+    background-color: #f44336;
+    color: white;
+}
+
+.cancel-btn:hover:not(:disabled) {
+    background-color: #da190b;
+    transform: translateY(-1px);
+}
+
+.approve-btn:disabled, .cancel-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .reservations-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .reservation-body strong {
+        min-width: 80px;
+    }
 }

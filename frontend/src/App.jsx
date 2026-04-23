@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import './index.css';
 import Navbar from './components/navbar/Navbar';
+import AdminBar from './components/adminBar/AdminBar'; // New component
 import RoomBookingCalendar from './components/roomBookingCalendar/roomBookingCalendar';
 import EquipmentBooking from './components/equipmentBooking/equipmentBooking';
 import AdminPanel from './components/adminPanel/adminPanel';
@@ -18,6 +19,8 @@ function PageShell({ adminSession, onLogin, onLogout, children }) {
                     <img src="../src/images/UNCWLibraryImage.jpg" alt="UNCW Library" />
                 </div>
             </header>
+            {/* Admin Bar - sticky at top */}
+            <AdminBar adminSession={adminSession} onLogout={onLogout} />
             <Navbar adminSession={adminSession} onLogin={onLogin} onLogout={onLogout} />
             <main>
                 {children}
@@ -36,12 +39,12 @@ function Home({ adminSession, onLogin, onLogout }) {
         <PageShell adminSession={adminSession} onLogin={onLogin} onLogout={onLogout}>
             <aside>
                 <h3>Welcome to CSC-550 Booking System</h3>
-                <p>Book rooms and equipment here!</p>
+                <p>The UNCW library holds a variety of study spaces and resources for students.</p>
             </aside>
             <section>
                 <hr />
                 <RoomBookingCalendar adminSession={adminSession} />
-                <ReservationStatus/>
+                <ReservationStatus adminSession={adminSession}/>
             </section>
         </PageShell>
     );
@@ -55,7 +58,7 @@ function EquipmentPage({ adminSession, onLogin, onLogout }) {
             <p>Available library equipment including laptops and specialised computers.</p>
             <section>
                 <EquipmentBooking />
-                <EquipmentStatus />
+                <EquipmentStatus adminSession={adminSession} />
             </section>
         </PageShell>
     );
