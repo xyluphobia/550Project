@@ -38,7 +38,7 @@ header {
   background-color: rgb(4, 120, 123);
   display: block;
   text-align: center;
-  border: 2.5px solid black;
+  border: 2.5px solid #002D5B;
   border-radius: 15px;
   padding: 0 15px;
   position: relative;
@@ -97,7 +97,7 @@ main {
   }
 
   & .submit-btn {
-    background-color: rgb(4, 120, 123);
+    background-color: #007680;
     color: black;
     display: flex;
     justify-content: center;
