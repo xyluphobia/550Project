@@ -7,7 +7,7 @@ The system replaces fragmented, desktop-only workflows with a centralized platfo
 ---
 ## Architecture
 This project uses a client-server architecture:
- - **Frontend:** React (Vite) + React Native (Vite)
+ - **Frontend:** React (Vite) + Axios
  - **Backend:** Node.js + Express (REST API)
  - **Database:** MySQL hosted on Azure
  - **Authentication:** Mock or simplified auth for prototype
