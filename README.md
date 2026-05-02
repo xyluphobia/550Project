@@ -38,7 +38,6 @@ This project uses a client-server architecture:
  - React
  - Axios / Fetch API
  - React Router
- - React Native
 
 **Backend**
  - Node.js
@@ -124,10 +123,10 @@ npm run dev
 ```
 
 Frontend runs at:
-http://localhost:3000
+http://localhost:5173
 
 Backend API runs at:
-http://localhost:5173
+http://localhost:3000
 
 ## Testing
 Backend
